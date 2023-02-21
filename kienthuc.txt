@@ -1,0 +1,12 @@
++)morgan : luu lai cac log 
+5 che do:
+DEV :
+Combined
+common
+short
+tiny
+
++)helmet
++)compress
+khi nhieu ng truy cap thi se bi ton bang thong (cua server va chung ta)
+se nen data lai gap 100 lan
