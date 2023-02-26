@@ -1,3 +1,4 @@
+Các package hỗ trợ (tìm hiểu thêm hoàn thiện )
 +)morgan : luu lai cac log 
 5 che do:
 DEV :
@@ -10,3 +11,12 @@ tiny
 +)compress
 khi nhieu ng truy cap thi se bi ton bang thong (cua server va chung ta)
 se nen data lai gap 100 lan
+7 điền cần biết khi triển khai hệ thống (connect Mongose DB)
++)Nhược điểm của các connect cũ
++)Cách connect mới, khuyên dùng
++)Kiểm tra hệ thống có bao nhieeu nguoi truy cap
++)
++)
++)
++)
+

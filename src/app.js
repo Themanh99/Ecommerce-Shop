@@ -1,22 +1,32 @@
-const express = require('express');
-const { default: helmet } = require('helmet');
-const morgan = require('morgan');
-const compression = require('compression');
-
+const compression = require("compression");
+const handlebars = require("express-handlebars");
+const express = require("express");
+const { default: helmet } = require("helmet");
+const morgan = require("morgan");
 const app = express();
-//init middle
-app.use(morgan("dev"))
-app.use(helmet())
-app.use(compression())
-//init DB
 
-//init routes
-app.get('/', (req, res, next) => {
-    const strCom = 'ManhCT'
+// TODO: init middleware
+app.use(morgan('combined'));
+app.use(helmet());
+app.use(compression());
+
+//template engine
+app.engine('handlebars', handlebars());
+app.set('view engine', 'handlebars');
+// TODO: init db
+// require("./databases/init.mongodb.lv0");
+require("./dbs/init.mongodb");
+const { countConnect, checkOverload } = require("./helpers/check.connect");
+// checkOverload();
+// countConnect();
+// const { checkOverload } = require("./helpers/check.connect");
+
+// TODO: init routes
+app.get("/", (req, res, next) => {
     return res.status(200).json({
-        message: 'Welcome',
-        metadata: strCom.repeat(10000)
-    })
-})
-//handle errors
+        message: "Welcome Node JS eCommerce",
+    });
+});
+// TODO: handing error
+
 module.exports = app;
