@@ -1,5 +1,5 @@
 const compression = require("compression");
-const handlebars = require("express-handlebars");
+require("dotenv").config();
 const express = require("express");
 const { default: helmet } = require("helmet");
 const morgan = require("morgan");
@@ -9,24 +9,34 @@ const app = express();
 app.use(morgan('combined'));
 app.use(helmet());
 app.use(compression());
-
+app.use(express.json());
+app.use(express.urlencoded({
+    extended: true
+}));
 //template engine
-app.engine('handlebars', handlebars());
-app.set('view engine', 'handlebars');
+
 // TODO: init db
-// require("./databases/init.mongodb.lv0");
 require("./dbs/init.mongodb");
-const { countConnect, checkOverload } = require("./helpers/check.connect");
+// const { countConnect, checkOverload } = require("./helpers/check.connect");
 // checkOverload();
 // countConnect();
-// const { checkOverload } = require("./helpers/check.connect");
 
 // TODO: init routes
-app.get("/", (req, res, next) => {
-    return res.status(200).json({
-        message: "Welcome Node JS eCommerce",
-    });
-});
-// TODO: handing error
+app.use('/', require('./routes'))
 
+// TODO: handing error
+app.use((req, res, next) => {
+    const err = new Error('Not Found');
+    err.status = 404;
+    next(err);
+})
+
+app.use((error, req, res, next) => {
+    const statusCode = err.status || 500
+    return res.status(statusCode).json({
+        status: 'error',
+        code: statusCode,
+        message: error.message || 'Internal Server Error'
+    })
+})
 module.exports = app;
