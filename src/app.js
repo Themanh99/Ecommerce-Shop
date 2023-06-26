@@ -6,13 +6,15 @@ const morgan = require("morgan");
 const app = express();
 
 // TODO: init middleware
-app.use(morgan('combined'));
+app.use(morgan("combined"));
 app.use(helmet());
 app.use(compression());
 app.use(express.json());
-app.use(express.urlencoded({
-    extended: true
-}));
+app.use(
+  express.urlencoded({
+    extended: true,
+  })
+);
 //template engine
 
 // TODO: init db
@@ -22,21 +24,21 @@ require("./dbs/init.mongodb");
 // countConnect();
 
 // TODO: init routes
-app.use('/', require('./routes'))
+app.use("/", require("./routes"));
 
 // TODO: handing error
 app.use((req, res, next) => {
-    const err = new Error('Not Found');
-    err.status = 404;
-    next(err);
-})
+  const err = new Error("Not Found");
+  err.status = 404;
+  next(err);
+});
 
 app.use((error, req, res, next) => {
-    const statusCode = err.status || 500
-    return res.status(statusCode).json({
-        status: 'error',
-        code: statusCode,
-        message: error.message || 'Internal Server Error'
-    })
-})
+  const statusCode = error.status || 500;
+  return res.status(statusCode).json({
+    status: "error",
+    code: statusCode,
+    message: error.message || "Internal Server Error",
+  });
+});
 module.exports = app;

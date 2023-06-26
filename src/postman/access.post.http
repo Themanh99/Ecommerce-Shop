@@ -3,10 +3,10 @@
 
 POST {{URL_DEV}}/shop/signup
 Content-Type: application/json
-x-api-key:4dd28fb1aba8376b11f61063d4af8ca939a408d1c65b87f44d0b6ec78bec616ddeccb8eca0af42bf83771409da35a7420d34e735a4f72ad9e900dfe44717e265
+x-api-key: 175709e911098142ecbc24ffcb30effd856e90d92711bc1e49163443de941ace4d4f898164f506ea7f0f1fc0fc8d67e694c7570b48b445eb74bb17e7228b93ad
 
 {
     "name":"Shop Ecommerce",
-    "email":"manhct3@gmail.com",
+    "email":"manhct@gmail.com",
     "password":"123abc"
 }
