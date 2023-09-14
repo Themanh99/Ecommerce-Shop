@@ -1,6 +1,6 @@
 "use strict";
 
-const { model, Schema, Types } = require("mongoose");
+const { model, Schema } = require("mongoose");
 
 const DOCUMENT_NAME = "Key";
 const COLLECTION_NAME = "Keys";

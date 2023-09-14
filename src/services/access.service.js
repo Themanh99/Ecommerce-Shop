@@ -11,6 +11,8 @@ const {
   ConflictRequestError,
   AuthFailureError,
 } = require("../core/error.response");
+
+const { CREATED } = require("../core/success.response");
 const { findByEmail } = require("./shop.service");
 const RoleShop = {
   SHOP: "SHOP",
@@ -57,7 +59,7 @@ class AccessService {
       // check if the user is already registed
       const holderShop = await shopModel.findOne({ email }).lean();
       if (holderShop) {
-        throw new BadRequestError("Shop is already registed");
+        throw new ConflictRequestError("Error: Shop is already registed");
       }
       const passwordHash = await bcrypt.hash(password, 10);
 
@@ -70,7 +72,6 @@ class AccessService {
       if (newShop) {
         const privateKey = crypto.randomBytes(64).toString("hex");
         const publicKey = crypto.randomBytes(64).toString("hex");
-        console.log({ privateKey, publicKey });
 
         const keyStore = await KeyTokenService.createKeyToken({
           userId: newShop._id,
@@ -79,21 +80,20 @@ class AccessService {
         });
 
         if (!keyStore) {
-          // throw new BadRequestError('Shop is already registed')
-          return {
-            code: "xxxx",
-            message: "keyStore error",
-          };
+          throw new ConflictRequestError("Error: keyStore error");
         }
         const tokens = await createTokenPair(
-          { userId: newShop._id, email },
+          {
+            userId: newShop._id,
+            email,
+          },
           publicKey,
           privateKey
         );
         console.log("Created Token Success::", tokens);
 
         return {
-          code: 201,
+          message: "Token created",
           metadata: {
             shop: getInfoData({
               fields: ["_id", "name", "email"],
@@ -105,9 +105,9 @@ class AccessService {
       }
     } catch (error) {
       return {
-        code: "xxx",
+        code: error.status,
         message: error.message,
-        status: "error",
+        status: error.status,
       };
     }
   };

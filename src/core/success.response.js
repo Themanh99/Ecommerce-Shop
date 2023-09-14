@@ -6,8 +6,8 @@ const StatusCode = {
 };
 
 const ReasonStatusCode = {
-  OK: "Created successfully",
-  CREATED: "Success",
+  OK: "Success",
+  CREATED: "Created",
 };
 
 class SuccessResponse {

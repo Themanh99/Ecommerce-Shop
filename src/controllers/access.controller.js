@@ -5,10 +5,11 @@ const AccessService = require("../services/access.service");
 class AccessController {
   login = async (req, res, next) => {
     new SuccessResponse({
+      message: "Login done",
       metadata: await AccessService.logIn(req.body),
     }).send(res);
   };
-  signUp = async (req, res, next) => {
+  signup = async (req, res, next) => {
     new CREATED({
       message: "registed OK!",
       metadata: await AccessService.signUp(req.body),

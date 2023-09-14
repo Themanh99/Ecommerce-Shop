@@ -1,5 +1,5 @@
 @URL_DEV = http://127.0.0.1:3056/v1/api/
-### signup
+###signup
 
 POST {{URL_DEV}}/shop/signup
 Content-Type: application/json
@@ -7,6 +7,16 @@ x-api-key: 175709e911098142ecbc24ffcb30effd856e90d92711bc1e49163443de941ace4d4f8
 
 {
     "name":"Shop Ecommerce",
+    "email":"manhct999@gmail.com",
+    "password":"123abc"
+}
+
+###login
+POST {{URL_DEV}}/shop/login
+Content-Type: application/json
+x-api-key: 175709e911098142ecbc24ffcb30effd856e90d92711bc1e49163443de941ace4d4f898164f506ea7f0f1fc0fc8d67e694c7570b48b445eb74bb17e7228b93ad
+
+{
     "email":"manhct@gmail.com",
     "password":"123abc"
 }
