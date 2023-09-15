@@ -3,20 +3,20 @@
 
 POST {{URL_DEV}}/shop/signup
 Content-Type: application/json
-x-api-key: 175709e911098142ecbc24ffcb30effd856e90d92711bc1e49163443de941ace4d4f898164f506ea7f0f1fc0fc8d67e694c7570b48b445eb74bb17e7228b93ad
+x-api-key: 84d32d52b60e0703ffe139a3c6477495981057e96c575df73e7c0d1e85e095330e4aad6dc684f31e7fb3c087aea9bfa43e72bc64288e33deeb8eb55fd6b686c0
 
 {
     "name":"Shop Ecommerce",
-    "email":"manhct999@gmail.com",
+    "email":"manhct01@gmail.com",
     "password":"123abc"
 }
 
 ###login
 POST {{URL_DEV}}/shop/login
 Content-Type: application/json
-x-api-key: 175709e911098142ecbc24ffcb30effd856e90d92711bc1e49163443de941ace4d4f898164f506ea7f0f1fc0fc8d67e694c7570b48b445eb74bb17e7228b93ad
+x-api-key: 84d32d52b60e0703ffe139a3c6477495981057e96c575df73e7c0d1e85e095330e4aad6dc684f31e7fb3c087aea9bfa43e72bc64288e33deeb8eb55fd6b686c0
 
 {
-    "email":"manhct@gmail.com",
+    "email":"manhct000@gmail.com",
     "password":"123abc"
 }

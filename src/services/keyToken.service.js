@@ -9,20 +9,20 @@ class KeyTokenService {
     refreshToken,
   }) => {
     try {
-      const filter = { user: userId },
-        update = {
-          publicKey,
-          privateKey,
-          refreshTokensUsed: [],
-          refreshToken,
-        },
-        options = { upset: true, new: true };
+      const filter = { user: userId };
+      const update = {
+        publicKey,
+        privateKey,
+        refreshTokensUsed: [],
+        refreshToken,
+      };
+      const options = { upsert: true, new: true };
 
-      const tokens = await keyTokenModel.findOneAndUpdate({
+      const tokens = await keyTokenModel.findOneAndUpdate(
         filter,
         update,
-        options,
-      });
+        options
+      );
 
       return tokens ? tokens.publicKey : null;
     } catch (error) {
