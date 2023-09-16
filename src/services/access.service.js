@@ -4,13 +4,14 @@ const shopModel = require("../models/shop.model");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const KeyTokenService = require("./keyToken.service");
-const { createTokenPair } = require("../auth/authUtils");
+const { createTokenPair, verifyToken } = require("../auth/authUtils");
 const { getInfoData } = require("../utils");
 const { findByEmail } = require("./shop.service");
 const { StatusCodes } = require("../utils/httpStatusCode");
 const {
-  BadRequestError,
+  ForBiddenError,
   ConflictRequestError,
+  AuthFailureError,
 } = require("../core/error.response");
 
 const RoleShop = {
@@ -26,7 +27,7 @@ class AccessService {
       const holderShop = await shopModel.findOne({ email }).lean();
 
       if (holderShop) {
-        throw new BadRequestError("Error::Shop is already registed!");
+        throw new ForBiddenError("Error::Shop is already registed!");
       }
       const passwordHash = await bcrypt.hash(password, 10);
 
@@ -114,6 +115,52 @@ class AccessService {
         fields: ["_id", "name", "email"],
         object: foundShop,
       }),
+      tokens,
+    };
+  };
+
+  static logOut = async (keyStore) => {
+    const deleteKey = await KeyTokenService.removeKeyById(keyStore._id);
+    return deleteKey;
+  };
+
+  static handlerRefreshToken = async ({ user, keyStore, tokenRefresh }) => {
+    /**
+     * TODO: Check refresh token in list refresh token used
+     * IF TRUE => delete all refresh token of this user
+     */
+    const { userId, email } = user;
+    if (keyStore.refreshTokensUsed.includes(tokenRefresh)) {
+      await KeyTokenService.deleteKeyById(userId);
+      throw new ForBiddenError("Warning:: Token is expired! Please relogin");
+    }
+    if (tokenRefresh !== keyStore.refreshToken)
+      throw new AuthFailureError(
+        "Error:: Shop is not registed with refresh token!"
+      );
+
+    const foundShop = await KeyTokenService.findByUserId(userId);
+    if (!foundShop)
+      throw new AuthFailureError("Error:: Shop is not registed with userid!");
+    /**
+     * TODO: Update refresh token list used and update refresh token new
+     */
+    const tokens = await createTokenPair(
+      { userId, email },
+      keyStore.publicKey,
+      keyStore.privateKey
+    );
+    await keyStore.update({
+      $set: {
+        refreshToken: tokens.refreshToken,
+      },
+      $addToSet: {
+        refreshTokensUsed: tokenRefresh,
+      },
+    });
+
+    return {
+      user,
       tokens,
     };
   };
