@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom';
-import { useAuthStore, UserRole } from '../../stores/authStore';
+import { useAuthStore, type UserRole } from '../../stores/authStore';
 
 interface Props {
   allowedRoles?: UserRole[];
@@ -15,5 +15,3 @@ export const ProtectedRoute: React.FC<Props> = ({ allowedRoles, redirectTo = '/'
   }
   return <Outlet />;
 };
-
-import React from 'react';

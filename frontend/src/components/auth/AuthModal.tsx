@@ -7,7 +7,6 @@ import {
   Typography,
   Divider,
   message,
-  Steps,
 } from 'antd';
 import { GoogleOutlined, LeftOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../../stores/authStore';
