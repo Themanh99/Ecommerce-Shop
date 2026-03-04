@@ -1,16 +1,25 @@
-import {
-  Controller,
-  Post,
-  Get,
+﻿import {
   Body,
-  Res,
-  Req,
-  UseGuards,
+  Controller,
+  Get,
   HttpCode,
   HttpStatus,
+  Post,
+  Req,
+  Res,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
-import { Response, Request } from 'express';
+import { ConfigService } from '@nestjs/config';
+import { AuthGuard } from '@nestjs/passport';
+import { ThrottlerGuard } from '@nestjs/throttler';
+import { Request, Response } from 'express';
+import { GetUser } from '../common/decorators/get-user.decorator';
+import {
+  COOKIE_KEYS,
+  ERROR_MESSAGES,
+  getCookieConfig,
+} from '../common/constants/app.constants';
 import { AuthService } from './auth.service';
 import {
   CheckIdentityDto,
@@ -21,10 +30,6 @@ import {
   SendOtpDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { GetUser } from './decorators/get-user.decorator';
-import { AuthGuard } from '@nestjs/passport';
-import { ConfigService } from '@nestjs/config';
-import { ThrottlerGuard } from '@nestjs/throttler';
 
 @Controller('auth')
 @UseGuards(ThrottlerGuard)
@@ -36,19 +41,10 @@ export class AuthController {
 
   private setTokenCookies(res: Response, accessToken: string, refreshToken: string) {
     const isProd = this.config.get('NODE_ENV') === 'production';
-    res.cookie('access_token', accessToken, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'strict' : 'lax',
-      maxAge: 15 * 60 * 1000, // 15 minutes
-    });
-    res.cookie('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'strict' : 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/api/auth/refresh', // Only sent to refresh endpoint
-    });
+    const cookieConfig = getCookieConfig(isProd);
+
+    res.cookie(COOKIE_KEYS.ACCESS_TOKEN, accessToken, cookieConfig.accessToken);
+    res.cookie(COOKIE_KEYS.REFRESH_TOKEN, refreshToken, cookieConfig.refreshToken);
   }
 
   @Post('check-identity')
@@ -89,22 +85,33 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const oldRefreshToken = req.cookies?.refresh_token;
-    if (!oldRefreshToken) throw new UnauthorizedException('Không tìm thấy refresh token');
+    const oldRefreshToken = req.cookies?.[COOKIE_KEYS.REFRESH_TOKEN];
+
+    if (!oldRefreshToken) {
+      throw new UnauthorizedException(ERROR_MESSAGES.MISSING_REFRESH_TOKEN);
+    }
+
     const { accessToken, refreshToken } = await this.auth.refreshTokens(oldRefreshToken);
     this.setTokenCookies(res, accessToken, refreshToken);
-    return { message: 'Token đã được làm mới' };
+
+    return { message: 'Token da duoc lam moi' };
   }
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const refreshToken = req.cookies?.refresh_token;
-    if (refreshToken) await this.auth.revokeRefreshToken(refreshToken);
-    res.clearCookie('access_token');
-    res.clearCookie('refresh_token', { path: '/api/auth/refresh' });
-    return { message: 'Đăng xuất thành công' };
+    const refreshToken = req.cookies?.[COOKIE_KEYS.REFRESH_TOKEN];
+    if (refreshToken) {
+      await this.auth.revokeRefreshToken(refreshToken);
+    }
+
+    const isProd = this.config.get('NODE_ENV') === 'production';
+    const cookieConfig = getCookieConfig(isProd);
+    res.clearCookie(COOKIE_KEYS.ACCESS_TOKEN, cookieConfig.clearAccessToken);
+    res.clearCookie(COOKIE_KEYS.REFRESH_TOKEN, cookieConfig.clearRefreshToken);
+
+    return { message: 'Dang xuat thanh cong' };
   }
 
   @Post('reset-password')
@@ -119,20 +126,19 @@ export class AuthController {
     return this.auth.getMe(userId);
   }
 
-  // ─── GOOGLE OAUTH ─────────────────────────────
   @Get('google')
   @UseGuards(AuthGuard('google'))
   googleLogin() {
-    // Redirects to Google Auth page
+    return;
   }
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Req() req: Request, @Res() res: Response) {
-    const googleUser = (req as any).user;
+    const googleUser = (req as Request & { user: any }).user;
     const { user, accessToken, refreshToken } = await this.auth.googleLogin(googleUser);
     this.setTokenCookies(res, accessToken, refreshToken);
-    // Redirect to frontend with user data in query (or just redirect to home)
+
     const frontendUrl = this.config.get('FRONTEND_URL', 'http://localhost:5173');
     res.redirect(`${frontendUrl}/auth/callback?role=${user.role}`);
   }

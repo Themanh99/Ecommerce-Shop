@@ -6,12 +6,12 @@ import {
   Button,
   Typography,
   Divider,
-  message,
 } from 'antd';
 import { GoogleOutlined, LeftOutlined } from '@ant-design/icons';
-import { useAuthStore } from '../../stores/authStore';
-import { isEmail, isVietnamesePhone } from '../../utils/format';
-import api from '../../lib/api';
+import { useAuthStore } from '../../../stores/authStore';
+import { isEmail, isVietnamesePhone } from '../../../utils/format';
+import api from '../../../lib/api';
+import toast from '../../../lib/toast';
 
 const { Text, Title } = Typography;
 
@@ -45,12 +45,13 @@ export const AuthModal: React.FC<Props> = ({ open, onClose }) => {
   // ── STEP: Check identity ──────────────────────────
   const handleCheckIdentity = async () => {
     if (!contactValid(contact)) {
-      message.error('Vui lòng nhập đúng định dạng SĐT Việt Nam hoặc Email');
+      toast.error('Vui lòng nhập đúng định dạng SĐT Việt Nam hoặc Email');
       return;
     }
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/check-identity', { contact });
+      // _silent: true — interceptor won't show toast, component controls flow
+      const { data } = await api.post('/auth/check-identity', { contact }, { _silent: true });
       if (data.exists) {
         setStep('login');
       } else {
@@ -64,7 +65,7 @@ export const AuthModal: React.FC<Props> = ({ open, onClose }) => {
   const sendOtp = async (type: 'register' | 'login' | 'reset') => {
     await api.post('/auth/send-otp', { contact, type });
     setCountdown(60);
-    message.success('Mã OTP đã được gửi!');
+    toast.success('Mã OTP đã được gửi!');
   };
 
   // ── REGISTER ───────────────────────────────────────
@@ -73,7 +74,7 @@ export const AuthModal: React.FC<Props> = ({ open, onClose }) => {
     try {
       const { data } = await api.post('/auth/register', { contact, ...values });
       login(data.user);
-      message.success(`Chào mừng, ${data.user.name}! 🎉`);
+      toast.success(`Chào mừng, ${data.user.name}! 🎉`);
       onClose();
       redirectByRole(data.user.role);
     } finally { setLoading(false); }
@@ -85,7 +86,7 @@ export const AuthModal: React.FC<Props> = ({ open, onClose }) => {
     try {
       const { data } = await api.post('/auth/login', { contact, password: values.password });
       login(data.user);
-      message.success('Đăng nhập thành công!');
+      toast.success('Đăng nhập thành công!');
       onClose();
       redirectByRole(data.user.role);
     } finally { setLoading(false); }
@@ -97,7 +98,7 @@ export const AuthModal: React.FC<Props> = ({ open, onClose }) => {
     try {
       const { data } = await api.post('/auth/login-otp', { contact, otp: values.otp });
       login(data.user);
-      message.success('Đăng nhập thành công!');
+      toast.success('Đăng nhập thành công!');
       onClose();
       redirectByRole(data.user.role);
     } finally { setLoading(false); }
@@ -108,7 +109,7 @@ export const AuthModal: React.FC<Props> = ({ open, onClose }) => {
     setLoading(true);
     try {
       await api.post('/auth/reset-password', { contact, otp: values.otp, newPassword: values.newPassword });
-      message.success('Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại.');
+      toast.success('Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại.');
       setStep('login');
     } finally { setLoading(false); }
   };
@@ -201,14 +202,14 @@ export const AuthModal: React.FC<Props> = ({ open, onClose }) => {
           <Input.Password size="large" placeholder="Nhập mật khẩu" />
         </Form.Item>
         <Button type="link" size="small" style={{ padding: 0, marginTop: -12, marginBottom: 8 }}
-          onClick={() => { sendOtp('reset'); setStep('forgot'); }}>
+          onClick={() => { void sendOtp('reset'); setStep('forgot'); }}>
           Quên mật khẩu?
         </Button>
         <Button type="primary" block size="large" htmlType="submit" loading={loading}>
           Đăng nhập
         </Button>
         <Button block size="large" style={{ marginTop: 8 }}
-          onClick={() => { sendOtp('login'); setStep('login-otp'); }}>
+          onClick={() => { void sendOtp('login'); setStep('login-otp'); }}>
           Đăng nhập bằng mã OTP
         </Button>
       </Form>

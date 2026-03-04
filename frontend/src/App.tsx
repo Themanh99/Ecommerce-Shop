@@ -4,10 +4,10 @@ import { ConfigProvider, App as AntApp, theme } from 'antd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import viVN from 'antd/locale/vi_VN';
 import { useAuthStore } from './stores/authStore';
-import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { ProtectedRoute } from './pages/auth/components/ProtectedRoute';
 
 // Lazy load pages
-const HomePage = React.lazy(() => import('./pages/HomePage'));
+const HomePage = React.lazy(() => import('./pages/home'));
 const GoogleCallbackPage = React.lazy(() => import('./pages/auth/GoogleCallbackPage'));
 const AdminDashboard = React.lazy(() => import('./pages/admin/AdminDashboard'));
 

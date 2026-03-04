@@ -1,78 +1,81 @@
-import {
-  IsEmail,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  Matches,
-  MinLength,
-  IsEnum,
-} from 'class-validator';
+﻿import { IsEnum, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { ValidateContact } from '../../common/decorators/validate-contact.decorator';
 
-const VN_PHONE_REGEX = /^(0|\+84)(3[2-9]|5[6-9]|7[0|6-9]|8[0-9]|9[0-9])[0-9]{7}$/;
+export enum OtpRequestType {
+  REGISTER = 'register',
+  LOGIN = 'login',
+  RESET = 'reset',
+}
 
 export class CheckIdentityDto {
-  @IsNotEmpty({ message: 'SĐT hoặc Email không được để trống' })
+  @IsNotEmpty({ message: 'Thong tin lien he khong duoc de trong' })
   @IsString()
-  contact: string; // phone hoặc email
+  @ValidateContact({ message: 'Contact phai la email hoac so dien thoai Viet Nam hop le' })
+  contact: string;
 }
 
 export class RegisterDto {
-  @IsNotEmpty({ message: 'SĐT hoặc Email không được để trống' })
+  @IsNotEmpty({ message: 'Thong tin lien he khong duoc de trong' })
   @IsString()
+  @ValidateContact({ message: 'Contact phai la email hoac so dien thoai Viet Nam hop le' })
   contact: string;
 
-  @IsNotEmpty({ message: 'Họ tên không được để trống' })
+  @IsNotEmpty({ message: 'Ho ten khong duoc de trong' })
   @IsString()
   name: string;
 
-  @IsNotEmpty({ message: 'Mã OTP không được để trống' })
+  @IsNotEmpty({ message: 'Ma OTP khong duoc de trong' })
   @IsString()
   otp: string;
 
   @IsOptional()
-  @MinLength(6, { message: 'Mật khẩu tối thiểu 6 ký tự' })
+  @MinLength(6, { message: 'Mat khau toi thieu 6 ky tu' })
   password?: string;
 }
 
 export class LoginDto {
-  @IsNotEmpty({ message: 'SĐT hoặc Email không được để trống' })
+  @IsNotEmpty({ message: 'Thong tin lien he khong duoc de trong' })
   @IsString()
+  @ValidateContact({ message: 'Contact phai la email hoac so dien thoai Viet Nam hop le' })
   contact: string;
 
-  @IsNotEmpty({ message: 'Mật khẩu không được để trống' })
+  @IsNotEmpty({ message: 'Mat khau khong duoc de trong' })
   @IsString()
   password: string;
 }
 
 export class LoginOtpDto {
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Thong tin lien he khong duoc de trong' })
   @IsString()
+  @ValidateContact({ message: 'Contact phai la email hoac so dien thoai Viet Nam hop le' })
   contact: string;
 
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Ma OTP khong duoc de trong' })
   @IsString()
   otp: string;
 }
 
 export class SendOtpDto {
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Thong tin lien he khong duoc de trong' })
   @IsString()
+  @ValidateContact({ message: 'Contact phai la email hoac so dien thoai Viet Nam hop le' })
   contact: string;
 
-  @IsEnum(['register', 'login', 'reset'])
-  type: 'register' | 'login' | 'reset';
+  @IsEnum(OtpRequestType, { message: 'Loai OTP khong hop le' })
+  type: OtpRequestType;
 }
 
 export class ResetPasswordDto {
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Thong tin lien he khong duoc de trong' })
   @IsString()
+  @ValidateContact({ message: 'Contact phai la email hoac so dien thoai Viet Nam hop le' })
   contact: string;
 
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Ma OTP khong duoc de trong' })
   @IsString()
   otp: string;
 
-  @IsNotEmpty()
-  @MinLength(6, { message: 'Mật khẩu tối thiểu 6 ký tự' })
+  @IsNotEmpty({ message: 'Mat khau moi khong duoc de trong' })
+  @MinLength(6, { message: 'Mat khau toi thieu 6 ky tu' })
   newPassword: string;
 }

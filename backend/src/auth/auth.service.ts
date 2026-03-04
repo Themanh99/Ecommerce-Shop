@@ -1,17 +1,19 @@
-import {
+﻿import {
   Injectable,
   BadRequestException,
   UnauthorizedException,
   ConflictException,
   NotFoundException,
   ForbiddenException,
+  Inject,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { OtpType, User } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
+import Redis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
-import * as bcrypt from 'bcryptjs';
-import { OtpType, Role, User } from '@prisma/client';
 import {
   CheckIdentityDto,
   LoginDto,
@@ -20,9 +22,10 @@ import {
   ResetPasswordDto,
   SendOtpDto,
 } from './dto/auth.dto';
-import { Inject } from '@nestjs/common';
 import { REDIS_CLIENT } from '../redis/redis.module';
-import Redis from 'ioredis';
+import { APP_TIMEOUTS } from '../common/constants/app.constants';
+import { addDays, addMinutes } from '../common/utils/date.util';
+import { randomOtp, validateEmail } from '../common/utils/string.util';
 
 @Injectable()
 export class AuthService {
@@ -34,20 +37,10 @@ export class AuthService {
     @Inject(REDIS_CLIENT) private redis: Redis,
   ) {}
 
-  // ─── OTP UTILS ────────────────────────────────────
-  private generateOtp(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  }
-
-  private isEmail(contact: string): boolean {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact);
-  }
-
   private async createAndSendOtp(contact: string, type: OtpType, userId?: string) {
-    const code = this.generateOtp();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    const code = randomOtp(6);
+    const expiresAt = addMinutes(new Date(), APP_TIMEOUTS.OTP_MINUTES);
 
-    // Invalidate old OTPs for this contact/type
     await this.prisma.otpCode.updateMany({
       where: { contact, type, used: false },
       data: { used: true },
@@ -57,11 +50,16 @@ export class AuthService {
       data: { code, contact, type, expiresAt, userId },
     });
 
-    if (this.isEmail(contact)) {
-      const mailType = type === OtpType.REGISTER ? 'register' : type === OtpType.RESET_PASSWORD ? 'reset' : 'login';
+    if (validateEmail(contact)) {
+      const mailType =
+        type === OtpType.REGISTER
+          ? 'register'
+          : type === OtpType.RESET_PASSWORD
+            ? 'reset'
+            : 'login';
       await this.mail.sendOtp(contact, code, mailType);
     }
-    // SMS: integrate later if needed
+
     return code;
   }
 
@@ -69,12 +67,15 @@ export class AuthService {
     const otp = await this.prisma.otpCode.findFirst({
       where: { contact, code, type, used: false, expiresAt: { gt: new Date() } },
     });
-    if (!otp) return false;
+
+    if (!otp) {
+      return false;
+    }
+
     await this.prisma.otpCode.update({ where: { id: otp.id }, data: { used: true } });
     return true;
   }
 
-  // ─── TOKEN UTILS ──────────────────────────────────
   private async generateTokens(user: Pick<User, 'id' | 'role' | 'name' | 'email' | 'phone'>) {
     const payload = { sub: user.id, role: user.role, name: user.name };
 
@@ -82,58 +83,70 @@ export class AuthService {
       secret: this.config.get('JWT_ACCESS_SECRET'),
       expiresIn: this.config.get('JWT_ACCESS_EXPIRY', '15m'),
     });
+
     const refreshToken = await this.jwtService.signAsync(payload, {
       secret: this.config.get('JWT_REFRESH_SECRET'),
       expiresIn: this.config.get('JWT_REFRESH_EXPIRY', '7d'),
     });
 
-    // Store refresh token in DB
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const expiresAt = addDays(new Date(), APP_TIMEOUTS.JWT_REFRESH_DAYS);
     await this.prisma.refreshToken.create({ data: { token: refreshToken, userId: user.id, expiresAt } });
 
     return { accessToken, refreshToken };
   }
 
   async refreshTokens(oldRefreshToken: string) {
-    // Check blacklist in Redis
     const blacklisted = await this.redis.get(`blacklist:${oldRefreshToken}`);
-    if (blacklisted) throw new UnauthorizedException('Token đã bị thu hồi');
+    if (blacklisted) {
+      throw new UnauthorizedException('Token da bi thu hoi');
+    }
 
-    let payload: any;
     try {
-      payload = await this.jwtService.verifyAsync(oldRefreshToken, {
+      await this.jwtService.verifyAsync(oldRefreshToken, {
         secret: this.config.get('JWT_REFRESH_SECRET'),
       });
     } catch {
-      throw new UnauthorizedException('Refresh token không hợp lệ hoặc đã hết hạn');
+      throw new UnauthorizedException('Refresh token khong hop le hoac da het han');
     }
 
     const stored = await this.prisma.refreshToken.findFirst({
       where: { token: oldRefreshToken, expiresAt: { gt: new Date() } },
       include: { user: true },
     });
-    if (!stored) throw new UnauthorizedException('Refresh token không tồn tại');
 
-    // Rotate: invalidate old, issuer new
+    if (!stored) {
+      throw new UnauthorizedException('Refresh token khong ton tai');
+    }
+
     await this.prisma.refreshToken.delete({ where: { id: stored.id } });
-    await this.redis.set(`blacklist:${oldRefreshToken}`, '1', 'EX', 7 * 24 * 3600);
+    await this.redis.set(
+      `blacklist:${oldRefreshToken}`,
+      '1',
+      'EX',
+      APP_TIMEOUTS.TOKEN_BLACKLIST_SECONDS,
+    );
 
     return this.generateTokens(stored.user);
   }
 
   async revokeRefreshToken(refreshToken: string) {
-    const ttl = 7 * 24 * 3600; // 7 days in seconds
-    await this.redis.set(`blacklist:${refreshToken}`, '1', 'EX', ttl);
+    await this.redis.set(
+      `blacklist:${refreshToken}`,
+      '1',
+      'EX',
+      APP_TIMEOUTS.TOKEN_BLACKLIST_SECONDS,
+    );
     await this.prisma.refreshToken.deleteMany({ where: { token: refreshToken } });
   }
 
-  // ─── AUTH FLOWS ───────────────────────────────────
   async checkIdentity(dto: CheckIdentityDto) {
     const { contact } = dto;
-    const isEmail = this.isEmail(contact);
+    const isEmail = validateEmail(contact);
+
     const user = await this.prisma.user.findFirst({
       where: isEmail ? { email: contact } : { phone: contact },
     });
+
     return { exists: !!user, role: user?.role ?? null };
   }
 
@@ -143,28 +156,32 @@ export class AuthService {
       login: OtpType.LOGIN,
       reset: OtpType.RESET_PASSWORD,
     };
+
     const user = await this.prisma.user.findFirst({
-      where: this.isEmail(dto.contact) ? { email: dto.contact } : { phone: dto.contact },
+      where: validateEmail(dto.contact) ? { email: dto.contact } : { phone: dto.contact },
     });
+
     await this.createAndSendOtp(dto.contact, typeMap[dto.type], user?.id);
-    return { message: 'Mã OTP đã được gửi' };
+    return { message: 'Ma OTP da duoc gui' };
   }
 
   async register(dto: RegisterDto) {
     const { contact, name, otp, password } = dto;
-    const isEmail = this.isEmail(contact);
+    const isEmail = validateEmail(contact);
 
-    // Check if user already exists
     const existing = await this.prisma.user.findFirst({
       where: isEmail ? { email: contact } : { phone: contact },
     });
-    if (existing) throw new ConflictException('Tài khoản đã tồn tại');
 
-    // Verify OTP
+    if (existing) {
+      throw new ConflictException('Tai khoan da ton tai');
+    }
+
     const valid = await this.verifyOtp(contact, otp, OtpType.REGISTER);
-    if (!valid) throw new BadRequestException('Mã OTP không đúng hoặc đã hết hạn');
+    if (!valid) {
+      throw new BadRequestException('Ma OTP khong dung hoac da het han');
+    }
 
-    // Hash password if provided
     const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
 
     const user = await this.prisma.user.create({
@@ -184,16 +201,28 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     const { contact, password } = dto;
-    const isEmail = this.isEmail(contact);
+    const isEmail = validateEmail(contact);
+
     const user = await this.prisma.user.findFirst({
       where: isEmail ? { email: contact } : { phone: contact },
     });
-    if (!user) throw new NotFoundException('Tài khoản không tồn tại');
-    if (!user.isActive) throw new ForbiddenException('Tài khoản đã bị khóa');
-    if (!user.password) throw new BadRequestException('Tài khoản này dùng OTP hoặc Google để đăng nhập');
+
+    if (!user) {
+      throw new NotFoundException('Tai khoan khong ton tai');
+    }
+
+    if (!user.isActive) {
+      throw new ForbiddenException('Tai khoan da bi khoa');
+    }
+
+    if (!user.password) {
+      throw new BadRequestException('Tai khoan nay dung OTP hoac Google de dang nhap');
+    }
 
     const valid = await bcrypt.compare(password, user.password);
-    if (!valid) throw new UnauthorizedException('Mật khẩu không chính xác');
+    if (!valid) {
+      throw new UnauthorizedException('Mat khau khong chinh xac');
+    }
 
     const tokens = await this.generateTokens(user);
     return { user: this.sanitize(user), ...tokens };
@@ -201,15 +230,24 @@ export class AuthService {
 
   async loginWithOtp(dto: LoginOtpDto) {
     const { contact, otp } = dto;
-    const isEmail = this.isEmail(contact);
+    const isEmail = validateEmail(contact);
+
     const user = await this.prisma.user.findFirst({
       where: isEmail ? { email: contact } : { phone: contact },
     });
-    if (!user) throw new NotFoundException('Tài khoản không tồn tại');
-    if (!user.isActive) throw new ForbiddenException('Tài khoản đã bị khóa');
+
+    if (!user) {
+      throw new NotFoundException('Tai khoan khong ton tai');
+    }
+
+    if (!user.isActive) {
+      throw new ForbiddenException('Tai khoan da bi khoa');
+    }
 
     const valid = await this.verifyOtp(contact, otp, OtpType.LOGIN);
-    if (!valid) throw new BadRequestException('Mã OTP không đúng hoặc đã hết hạn');
+    if (!valid) {
+      throw new BadRequestException('Ma OTP khong dung hoac da het han');
+    }
 
     const tokens = await this.generateTokens(user);
     return { user: this.sanitize(user), ...tokens };
@@ -217,33 +255,43 @@ export class AuthService {
 
   async resetPassword(dto: ResetPasswordDto) {
     const { contact, otp, newPassword } = dto;
-    const isEmail = this.isEmail(contact);
+    const isEmail = validateEmail(contact);
 
     const valid = await this.verifyOtp(contact, otp, OtpType.RESET_PASSWORD);
-    if (!valid) throw new BadRequestException('Mã OTP không đúng hoặc đã hết hạn');
+    if (!valid) {
+      throw new BadRequestException('Ma OTP khong dung hoac da het han');
+    }
 
     const user = await this.prisma.user.findFirst({
       where: isEmail ? { email: contact } : { phone: contact },
     });
-    if (!user) throw new NotFoundException('Tài khoản không tồn tại');
+
+    if (!user) {
+      throw new NotFoundException('Tai khoan khong ton tai');
+    }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await this.prisma.user.update({ where: { id: user.id }, data: { password: hashedPassword } });
 
-    // Revoke all refresh tokens for this user (force re-login)
     const tokens = await this.prisma.refreshToken.findMany({ where: { userId: user.id } });
-    for (const t of tokens) {
-      await this.redis.set(`blacklist:${t.token}`, '1', 'EX', 7 * 24 * 3600);
+    for (const token of tokens) {
+      await this.redis.set(
+        `blacklist:${token.token}`,
+        '1',
+        'EX',
+        APP_TIMEOUTS.TOKEN_BLACKLIST_SECONDS,
+      );
     }
+
     await this.prisma.refreshToken.deleteMany({ where: { userId: user.id } });
 
-    return { message: 'Đặt lại mật khẩu thành công' };
+    return { message: 'Dat lai mat khau thanh cong' };
   }
 
   async googleLogin(googleUser: { googleId: string; email: string; name: string; avatar: string }) {
     let user = await this.prisma.user.findFirst({ where: { googleId: googleUser.googleId } });
+
     if (!user) {
-      // Also try find by email in case manually registered before
       const byEmail = await this.prisma.user.findFirst({ where: { email: googleUser.email } });
       if (byEmail) {
         user = await this.prisma.user.update({
@@ -262,14 +310,22 @@ export class AuthService {
         });
       }
     }
-    if (!user.isActive) throw new ForbiddenException('Tài khoản đã bị khóa');
+
+    if (!user.isActive) {
+      throw new ForbiddenException('Tai khoan da bi khoa');
+    }
+
     const tokens = await this.generateTokens(user);
     return { user: this.sanitize(user), ...tokens };
   }
 
   async getMe(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('Người dùng không tồn tại');
+
+    if (!user) {
+      throw new NotFoundException('Nguoi dung khong ton tai');
+    }
+
     return this.sanitize(user);
   }
 
