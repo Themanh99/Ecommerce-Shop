@@ -1,3 +1,6 @@
+'use client';
+
+import Link from 'next/link';
 import { Layout, Row, Col, Typography, Space, Divider } from 'antd';
 import {
   AppstoreOutlined,
@@ -64,7 +67,7 @@ export function AppFooter() {
               </Title>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {links.map((link) => (
-                  <a
+                  <Link
                     key={link}
                     href="#"
                     style={{
@@ -76,7 +79,7 @@ export function AppFooter() {
                     onMouseLeave={(e) => ((e.target as HTMLElement).style.color = '#aaa')}
                   >
                     {link}
-                  </a>
+                  </Link>
                 ))}
               </div>
             </Col>

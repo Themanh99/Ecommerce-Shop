@@ -15,17 +15,21 @@ import Redis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import {
+  APP_TIMEOUTS,
+  ERROR_MESSAGES,
+} from '../common/constants/app.constants';
+import { addDays, addMinutes } from '../common/utils/date.util';
+import { randomOtp, validateEmail } from '../common/utils/string.util';
+import { REDIS_CLIENT } from '../redis/redis.module';
+import {
   CheckIdentityDto,
   LoginDto,
   LoginOtpDto,
+  OtpRequestType,
   RegisterDto,
   ResetPasswordDto,
   SendOtpDto,
 } from './dto/auth.dto';
-import { REDIS_CLIENT } from '../redis/redis.module';
-import { APP_TIMEOUTS } from '../common/constants/app.constants';
-import { addDays, addMinutes } from '../common/utils/date.util';
-import { randomOtp, validateEmail } from '../common/utils/string.util';
 
 @Injectable()
 export class AuthService {
@@ -37,7 +41,11 @@ export class AuthService {
     @Inject(REDIS_CLIENT) private redis: Redis,
   ) {}
 
-  private async createAndSendOtp(contact: string, type: OtpType, userId?: string) {
+  private async createAndSendOtp(
+    contact: string,
+    type: OtpType,
+    userId?: string,
+  ) {
     const code = randomOtp(6);
     const expiresAt = addMinutes(new Date(), APP_TIMEOUTS.OTP_MINUTES);
 
@@ -63,20 +71,35 @@ export class AuthService {
     return code;
   }
 
-  private async verifyOtp(contact: string, code: string, type: OtpType): Promise<boolean> {
+  private async verifyOtp(
+    contact: string,
+    code: string,
+    type: OtpType,
+  ): Promise<boolean> {
     const otp = await this.prisma.otpCode.findFirst({
-      where: { contact, code, type, used: false, expiresAt: { gt: new Date() } },
+      where: {
+        contact,
+        code,
+        type,
+        used: false,
+        expiresAt: { gt: new Date() },
+      },
     });
 
     if (!otp) {
       return false;
     }
 
-    await this.prisma.otpCode.update({ where: { id: otp.id }, data: { used: true } });
+    await this.prisma.otpCode.update({
+      where: { id: otp.id },
+      data: { used: true },
+    });
     return true;
   }
 
-  private async generateTokens(user: Pick<User, 'id' | 'role' | 'name' | 'email' | 'phone'>) {
+  private async generateTokens(
+    user: Pick<User, 'id' | 'role' | 'name' | 'email' | 'phone'>,
+  ) {
     const payload = { sub: user.id, role: user.role, name: user.name };
 
     const accessToken = await this.jwtService.signAsync(payload, {
@@ -90,7 +113,9 @@ export class AuthService {
     });
 
     const expiresAt = addDays(new Date(), APP_TIMEOUTS.JWT_REFRESH_DAYS);
-    await this.prisma.refreshToken.create({ data: { token: refreshToken, userId: user.id, expiresAt } });
+    await this.prisma.refreshToken.create({
+      data: { token: refreshToken, userId: user.id, expiresAt },
+    });
 
     return { accessToken, refreshToken };
   }
@@ -106,7 +131,9 @@ export class AuthService {
         secret: this.config.get('JWT_REFRESH_SECRET'),
       });
     } catch {
-      throw new UnauthorizedException('Refresh token khong hop le hoac da het han');
+      throw new UnauthorizedException(
+        'Refresh token khong hop le hoac da het han',
+      );
     }
 
     const stored = await this.prisma.refreshToken.findFirst({
@@ -136,7 +163,9 @@ export class AuthService {
       'EX',
       APP_TIMEOUTS.TOKEN_BLACKLIST_SECONDS,
     );
-    await this.prisma.refreshToken.deleteMany({ where: { token: refreshToken } });
+    await this.prisma.refreshToken.deleteMany({
+      where: { token: refreshToken },
+    });
   }
 
   async checkIdentity(dto: CheckIdentityDto) {
@@ -151,14 +180,16 @@ export class AuthService {
   }
 
   async sendOtp(dto: SendOtpDto) {
-    const typeMap: Record<string, OtpType> = {
+    const typeMap: Record<OtpRequestType, OtpType> = {
       register: OtpType.REGISTER,
       login: OtpType.LOGIN,
       reset: OtpType.RESET_PASSWORD,
     };
 
     const user = await this.prisma.user.findFirst({
-      where: validateEmail(dto.contact) ? { email: dto.contact } : { phone: dto.contact },
+      where: validateEmail(dto.contact)
+        ? { email: dto.contact }
+        : { phone: dto.contact },
     });
 
     await this.createAndSendOtp(dto.contact, typeMap[dto.type], user?.id);
@@ -179,7 +210,7 @@ export class AuthService {
 
     const valid = await this.verifyOtp(contact, otp, OtpType.REGISTER);
     if (!valid) {
-      throw new BadRequestException('Ma OTP khong dung hoac da het han');
+      throw new BadRequestException(ERROR_MESSAGES.INVALID_OTP);
     }
 
     const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
@@ -216,7 +247,9 @@ export class AuthService {
     }
 
     if (!user.password) {
-      throw new BadRequestException('Tai khoan nay dung OTP hoac Google de dang nhap');
+      throw new BadRequestException(
+        'Tai khoan nay dung OTP hoac Google de dang nhap',
+      );
     }
 
     const valid = await bcrypt.compare(password, user.password);
@@ -246,7 +279,7 @@ export class AuthService {
 
     const valid = await this.verifyOtp(contact, otp, OtpType.LOGIN);
     if (!valid) {
-      throw new BadRequestException('Ma OTP khong dung hoac da het han');
+      throw new BadRequestException(ERROR_MESSAGES.INVALID_OTP);
     }
 
     const tokens = await this.generateTokens(user);
@@ -259,7 +292,7 @@ export class AuthService {
 
     const valid = await this.verifyOtp(contact, otp, OtpType.RESET_PASSWORD);
     if (!valid) {
-      throw new BadRequestException('Ma OTP khong dung hoac da het han');
+      throw new BadRequestException(ERROR_MESSAGES.INVALID_OTP);
     }
 
     const user = await this.prisma.user.findFirst({
@@ -271,9 +304,14 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await this.prisma.user.update({ where: { id: user.id }, data: { password: hashedPassword } });
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword },
+    });
 
-    const tokens = await this.prisma.refreshToken.findMany({ where: { userId: user.id } });
+    const tokens = await this.prisma.refreshToken.findMany({
+      where: { userId: user.id },
+    });
     for (const token of tokens) {
       await this.redis.set(
         `blacklist:${token.token}`,
@@ -288,15 +326,28 @@ export class AuthService {
     return { message: 'Dat lai mat khau thanh cong' };
   }
 
-  async googleLogin(googleUser: { googleId: string; email: string; name: string; avatar: string }) {
-    let user = await this.prisma.user.findFirst({ where: { googleId: googleUser.googleId } });
+  async googleLogin(googleUser: {
+    googleId: string;
+    email: string;
+    name: string;
+    avatar: string;
+  }) {
+    let user = await this.prisma.user.findFirst({
+      where: { googleId: googleUser.googleId },
+    });
 
     if (!user) {
-      const byEmail = await this.prisma.user.findFirst({ where: { email: googleUser.email } });
+      const byEmail = await this.prisma.user.findFirst({
+        where: { email: googleUser.email },
+      });
       if (byEmail) {
         user = await this.prisma.user.update({
           where: { id: byEmail.id },
-          data: { googleId: googleUser.googleId, avatar: googleUser.avatar, isEmailVerified: true },
+          data: {
+            googleId: googleUser.googleId,
+            avatar: googleUser.avatar,
+            isEmailVerified: true,
+          },
         });
       } else {
         user = await this.prisma.user.create({

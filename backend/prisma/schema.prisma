@@ -1,5 +1,7 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// ============================================================
+// EShop — Prisma Schema (Thời trang)
+// PostgreSQL + Prisma Client JS
+// ============================================================
 
 generator client {
   provider = "prisma-client-js"
@@ -9,29 +11,95 @@ datasource db {
   provider = "postgresql"
 }
 
+// ============================================================
+// ENUMS
+// ============================================================
+
 enum Role {
   ADMIN
   SALE
   USER
 }
 
-model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String?   @unique
-  phone         String?   @unique
-  password      String?
-  role          Role      @default(USER)
-  isActive      Boolean   @default(true)
-  googleId      String?   @unique
-  avatar        String?
-  isPhoneVerified Boolean @default(false)
-  isEmailVerified Boolean @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+enum OtpType {
+  REGISTER
+  LOGIN
+  RESET_PASSWORD
+  VERIFY_PHONE
+}
 
-  otpCodes      OtpCode[]
-  refreshTokens RefreshToken[]
+enum VoucherType {
+  PERCENT
+  FIXED
+}
+
+enum PaymentMethod {
+  COD
+  BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+}
+
+enum OrderStatus {
+  PENDING     // Vừa đặt, chờ xác nhận
+  CONFIRMED   // Sale đã xác nhận (gọi điện / thấy tiền CK)
+  PROCESSING  // Đang đóng gói
+  SHIPPING    // Đang giao hàng
+  DONE        // Hoàn thành
+  CANCELLED   // Đã hủy
+}
+
+enum InventoryReason {
+  SALE          // Bán hàng
+  RETURN        // Trả hàng
+  IMPORT        // Nhập hàng
+  MANUAL_ADJUST // Điều chỉnh thủ công
+  RESERVED      // Giữ chỗ cho đơn pending
+  RELEASED      // Giải phóng khi đơn hủy
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+
+model User {
+  id              String   @id @default(cuid())
+  name            String
+  email           String?  @unique
+  phone           String?  @unique
+  password        String?  // bcrypt hash, null nếu chỉ dùng OTP/Google
+  role            Role     @default(USER)
+  isActive        Boolean  @default(true)
+  googleId        String?  @unique
+  avatar          String?
+  isPhoneVerified Boolean  @default(false)
+  isEmailVerified Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  otpCodes       OtpCode[]
+  refreshTokens  RefreshToken[]
+  addresses      Address[]
+  cart           Cart?
+  orders         Order[]
+  reviews        Review[]
+  voucherUsages  VoucherUser[]
+  products       Product[]          @relation("ProductCreatedBy")
+  inventoryLogs  InventoryLog[]     @relation("InventoryLogCreatedBy")
+  orderStatusLogs OrderStatusLog[]  @relation("StatusLogCreatedBy")
+  auditLogs      AuditLog[]
+  vouchers       Voucher[]          @relation("VoucherCreatedBy")
 
   @@map("users")
 }
@@ -47,14 +115,9 @@ model OtpCode {
   user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
+  @@index([contact, type])
+  @@index([expiresAt])
   @@map("otp_codes")
-}
-
-enum OtpType {
-  REGISTER
-  LOGIN
-  RESET_PASSWORD
-  VERIFY_PHONE
 }
 
 model RefreshToken {
@@ -66,4 +129,474 @@ model RefreshToken {
   createdAt DateTime @default(now())
 
   @@map("refresh_tokens")
+}
+
+// ============================================================
+// CATALOG
+// ============================================================
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  parentId  String?
+  parent    Category?  @relation("CategoryChildren", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryChildren")
+  imageUrl  String?
+  sortOrder Int        @default(0)
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+
+  products  Product[]
+
+  @@index([parentId])
+  @@map("categories")
+}
+
+model Tag {
+  id       String       @id @default(cuid())
+  name     String       @unique // "Nam", "Nữ", "Trẻ em", "Sale", "New", "Hot"
+  slug     String       @unique
+  color    String?      // hex color cho badge, VD: "#FF4D4F"
+
+  products ProductTag[]
+
+  @@map("tags")
+}
+
+// ============================================================
+// PRODUCT
+// ============================================================
+
+model Product {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  categoryId      String
+  category        Category @relation(fields: [categoryId], references: [id])
+  description     String?  // HTML rich text
+  material        String?  // "Cotton 100%", "Polyester"
+  careInstruction String?  // "Giặt tay, không sấy..."
+  sizeChartUrl    String?  // URL ảnh bảng size
+  isActive        Boolean  @default(true)
+  isFeatured      Boolean  @default(false) // Hiện ở trang chủ
+  createdById     String
+  createdBy       User     @relation("ProductCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  tags        ProductTag[]
+  optionTypes OptionType[]
+  variants    ProductVariant[]
+  images      ProductImage[]   // tối đa 5 ảnh (enforce ở business logic)
+  reviews     Review[]
+
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([isFeatured])
+  @@map("products")
+}
+
+// Nhiều-nhiều Product ↔ Tag
+model ProductTag {
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tagId     String
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([productId, tagId])
+  @@map("product_tags")
+}
+
+// Loại biến thể: "Màu sắc", "Kích thước"
+model OptionType {
+  id        String        @id @default(cuid())
+  productId String
+  product   Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String        // "Màu sắc", "Kích thước"
+  sortOrder Int           @default(0)
+
+  values    OptionValue[]
+
+  @@index([productId])
+  @@map("option_types")
+}
+
+// Giá trị biến thể: "S", "M", "Đỏ", "Đen"
+model OptionValue {
+  id           String      @id @default(cuid())
+  optionTypeId String
+  optionType   OptionType  @relation(fields: [optionTypeId], references: [id], onDelete: Cascade)
+  value        String      // "S", "M", "L", "Đỏ", "Đen"
+  displayName  String?     // Tên hiển thị đầy đủ hơn nếu cần
+  colorHex     String?     // "#FF0000" (chỉ dùng cho option màu sắc)
+  sortOrder    Int         @default(0)
+
+  variantOptions VariantOption[]
+
+  @@index([optionTypeId])
+  @@map("option_values")
+}
+
+// Tổ hợp biến thể cụ thể: (Đỏ + M), (Đen + L)
+// Đây là đơn vị tồn kho & giá thực sự
+model ProductVariant {
+  id            String  @id @default(cuid())
+  productId     String
+  product       Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku           String  @unique // Mã kho hàng, VD: "POLO-RED-M"
+  price         Decimal @db.Decimal(12, 0) // Giá bán (VND, không có xu)
+  comparePrice  Decimal? @db.Decimal(12, 0) // Giá gốc gạch ngang (nếu đang sale)
+  stock         Int     @default(0)  // Tổng tồn kho vật lý
+  stockReserved Int     @default(0)  // Đang bị giữ bởi đơn PENDING
+  // stockAvailable = stock - stockReserved (computed at query time)
+  barcode       String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  options       VariantOption[]
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  images        ProductImage[]
+  inventoryLogs InventoryLog[]
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+// Nhiều-nhiều Variant ↔ OptionValue
+model VariantOption {
+  variantId     String
+  variant       ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  optionValueId String
+  optionValue   OptionValue    @relation(fields: [optionValueId], references: [id], onDelete: Cascade)
+
+  @@id([variantId, optionValueId])
+  @@map("variant_options")
+}
+
+// ============================================================
+// MEDIA — tối đa 5 ảnh / sản phẩm (enforce ở service layer)
+// ============================================================
+
+model ProductImage {
+  id        String          @id @default(cuid())
+  productId String
+  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId String?         // null = ảnh chung của sản phẩm
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  url       String          // Cloudinary full URL
+  publicId  String          // Cloudinary public_id (dùng để xóa)
+  altText   String?
+  isPrimary Boolean         @default(false)
+  sortOrder Int             @default(0) // 0-4
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+// ============================================================
+// INVENTORY LOG
+// ============================================================
+
+model InventoryLog {
+  id          String          @id @default(cuid())
+  variantId   String
+  variant     ProductVariant  @relation(fields: [variantId], references: [id])
+  delta       Int             // +10 (nhập), -2 (bán), -1 (giữ chỗ)
+  afterQty    Int             // Tồn kho thực sau thay đổi
+  reason      InventoryReason
+  orderId     String?         // Đơn hàng gây ra (nếu có)
+  order       Order?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  note        String?         // Ghi chú thủ công
+  createdById String
+  createdBy   User            @relation("InventoryLogCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime        @default(now())
+
+  @@index([variantId])
+  @@index([createdAt])
+  @@map("inventory_logs")
+}
+
+// ============================================================
+// REVIEW
+// ============================================================
+
+model Review {
+  id          String        @id @default(cuid())
+  productId   String
+  product     Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId     String        // Chỉ user đã mua mới được review
+  order       Order         @relation(fields: [orderId], references: [id])
+  rating      Int           // 1-5
+  title       String?
+  content     String?
+  isApproved  Boolean       @default(false) // Admin duyệt trước khi hiện
+  helpfulCount Int          @default(0)
+  createdAt   DateTime      @default(now())
+
+  images ReviewImage[]
+
+  // Mỗi đơn hàng chỉ được review 1 lần cho 1 sản phẩm
+  @@unique([productId, userId, orderId])
+  @@index([productId])
+  @@map("reviews")
+}
+
+model ReviewImage {
+  id       String @id @default(cuid())
+  reviewId String
+  review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  url      String
+
+  @@map("review_images")
+}
+
+// ============================================================
+// CART
+// ============================================================
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String?    @unique   // null = guest cart
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId String?    @unique   // Guest dùng sessionId, null nếu đã login
+  updatedAt DateTime   @updatedAt
+
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        String         @id @default(cuid())
+  cartId    String
+  cart      Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  quantity  Int            // >= 1
+  addedAt   DateTime       @default(now())
+
+  // Không cho trùng variant trong cùng giỏ
+  @@unique([cartId, variantId])
+  @@index([cartId])
+  @@map("cart_items")
+}
+
+// ============================================================
+// VOUCHER
+// ============================================================
+
+model Voucher {
+  id            String      @id @default(cuid())
+  code          String      @unique // "SUMMER20", "VUI50"
+  type          VoucherType
+  value         Decimal     @db.Decimal(12, 0) // 20 (%) hoặc 50000 (VND)
+  minOrderValue Decimal     @db.Decimal(12, 0) @default(0) // Đơn tối thiểu
+  maxDiscount   Decimal?    @db.Decimal(12, 0)             // Trần giảm (cho percent)
+  usageLimit    Int?                                        // null = không giới hạn
+  perUserLimit  Int         @default(1)                     // Mỗi user dùng tối đa N lần
+  usedCount     Int         @default(0)
+  isActive      Boolean     @default(true)
+  isPublic      Boolean     @default(false) // Hiện trên storefront
+  startsAt      DateTime?
+  expiresAt     DateTime?
+  createdById   String
+  createdBy     User        @relation("VoucherCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime    @default(now())
+
+  orders       Order[]
+  usages       VoucherUser[]
+
+  @@map("vouchers")
+}
+
+// Theo dõi ai đã dùng voucher nào
+model VoucherUser {
+  id             String   @id @default(cuid())
+  voucherId      String
+  voucher        Voucher  @relation(fields: [voucherId], references: [id])
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  orderId        String   @unique // 1 đơn chỉ dùng 1 voucher
+  order          Order    @relation(fields: [orderId], references: [id])
+  discountAmount Decimal  @db.Decimal(12, 0) // Số tiền đã giảm thực tế
+  usedAt         DateTime @default(now())
+
+  @@index([voucherId, userId])
+  @@map("voucher_users")
+}
+
+// ============================================================
+// ADDRESS — Sổ địa chỉ (chỉ cho user đã đăng ký)
+// Guest dùng addressSnapshot trong Order
+// ============================================================
+
+model Address {
+  id       String  @id @default(cuid())
+  userId   String
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName String
+  phone    String
+  province String
+  district String
+  ward     String
+  street   String  // Số nhà, tên đường
+  isDefault Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+// ============================================================
+// ORDER
+// ============================================================
+
+model Order {
+  id            String        @id @default(cuid())
+  code          String        @unique // "DH_8X9A2C" — ngắn, dễ đọc, dễ đối soát
+  
+  // User có thể null nếu là guest order
+  userId        String?
+  user          User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Thông tin người đặt & giao hàng — LUÔN lưu snapshot
+  // Cho phép guest order: chỉ cần phone + email + họ tên + địa chỉ
+  customerName  String        // Họ và tên người đặt
+  customerPhone String        // SĐT (bắt buộc để gọi xác nhận)
+  customerEmail String?       // Email (để gửi xác nhận, không bắt buộc)
+
+  // Địa chỉ giao hàng — snapshot tại thời điểm đặt
+  // Không FK sang Address để lịch sử không bị sai khi user sửa địa chỉ sau
+  shippingProvince String     // Tỉnh/Thành phố
+  shippingDistrict String     // Quận/Huyện
+  shippingWard     String     // Phường/Xã
+  shippingStreet   String     // Số nhà, tên đường
+
+  // Voucher (nếu có)
+  voucherId     String?
+  voucher       Voucher?      @relation(fields: [voucherId], references: [id], onDelete: SetNull)
+
+  // Tiền — backend tự tính, KHÔNG tin frontend
+  subtotal      Decimal       @db.Decimal(12, 0) // Tổng trước khi giảm
+  discountAmount Decimal      @db.Decimal(12, 0) @default(0)
+  shippingFee   Decimal       @db.Decimal(12, 0) @default(0) // Admin điền khi xác nhận
+  total         Decimal       @db.Decimal(12, 0) // Tổng thanh toán thực
+
+  paymentMethod PaymentMethod
+  paymentStatus PaymentStatus @default(UNPAID)
+  status        OrderStatus   @default(PENDING)
+
+  note          String?       // Ghi chú của khách
+  cancelReason  String?       // Lý do hủy
+
+  // Auto-cancel: nếu bank_transfer không xác nhận trong thời hạn
+  expiresAt     DateTime?
+
+  // Timestamps quan trọng
+  confirmedAt   DateTime?
+  shippedAt     DateTime?
+  completedAt   DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  items          OrderItem[]
+  statusLogs     OrderStatusLog[]
+  inventoryLogs  InventoryLog[]
+  reviews        Review[]
+  voucherUsage   VoucherUser?
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([customerPhone])
+  @@map("orders")
+}
+
+// Dòng sản phẩm trong đơn — dùng SNAPSHOT để tránh sai lệch lịch sử
+model OrderItem {
+  id          String          @id @default(cuid())
+  orderId     String
+  order       Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // FK nullable: nếu variant bị xóa sau này thì lịch sử đơn vẫn hiển thị được
+  variantId   String?
+  variant     ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  // Snapshot — bắt buộc lưu tất cả, KHÔNG phụ thuộc vào variant FK
+  productName String          // Tên sản phẩm lúc mua
+  variantName String          // "Đỏ / Size M"
+  imageUrl    String?         // Ảnh lúc mua
+  sku         String?         // SKU lúc mua
+
+  price       Decimal         @db.Decimal(12, 0) // Giá lúc mua
+  quantity    Int
+  subtotal    Decimal         @db.Decimal(12, 0) // price × quantity
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+// Timeline lịch sử thay đổi trạng thái đơn hàng
+model OrderStatusLog {
+  id           String      @id @default(cuid())
+  orderId      String
+  order        Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus   OrderStatus?
+  toStatus     OrderStatus
+  note         String?     // "Đã xác nhận chuyển khoản 1.030.000đ"
+  createdById  String
+  createdBy    User        @relation("StatusLogCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime    @default(now())
+
+  @@index([orderId])
+  @@map("order_status_logs")
+}
+
+// ============================================================
+// BANNER — Slider trang chủ
+// ============================================================
+
+model Banner {
+  id        String    @id @default(cuid())
+  title     String
+  imageUrl  String
+  linkUrl   String?   // URL khi click banner
+  sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
+  startsAt  DateTime? // Lên lịch tự động bật
+  endsAt    DateTime? // Tự động tắt
+  createdAt DateTime  @default(now())
+
+  @@map("banners")
+}
+
+// ============================================================
+// AUDIT LOG — Nhật ký thao tác Admin/Sale
+// ============================================================
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+  action    AuditAction
+  entity    String      // "Product", "Order", "Voucher"...
+  entityId  String      // ID bản ghi bị tác động
+  before    Json?       // Dữ liệu trước khi thay đổi
+  after     Json?       // Dữ liệu sau khi thay đổi
+  ipAddress String?
+  createdAt DateTime    @default(now())
+
+  @@index([entity, entityId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

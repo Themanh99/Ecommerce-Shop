@@ -28,7 +28,7 @@ declare module 'axios' {
 }
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
   withCredentials: true,
 });
 
@@ -96,7 +96,9 @@ api.interceptors.response.use(
         return api(config);
       } catch (refreshErr) {
         processQueue(refreshErr);
-        window.dispatchEvent(new CustomEvent('auth:logout'));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('auth:logout'));
+        }
         // Silent — user just gets redirected, no popup needed
         return Promise.reject(refreshErr);
       } finally {

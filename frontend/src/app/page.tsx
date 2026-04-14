@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import { Layout, Button, Row, Col, Card, Typography, Tag, Rate, Space } from 'antd';
 import {
@@ -14,9 +16,9 @@ import {
   ArrowRightOutlined,
   FireOutlined,
 } from '@ant-design/icons';
-import { AppHeader } from '../../components/layout/AppHeader';
-import { AppFooter } from '../../components/layout/AppFooter';
-import { AuthModal } from '../auth/components/AuthModal';
+import { AppHeader } from '@/components/layout/AppHeader';
+import { AppFooter } from '@/components/layout/AppFooter';
+import { AuthModal } from '@/features/auth/components/AuthModal';
 
 const { Content } = Layout;
 const { Title, Text, Paragraph } = Typography;

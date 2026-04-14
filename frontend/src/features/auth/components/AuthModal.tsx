@@ -1,4 +1,7 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Modal,
   Form,
@@ -8,10 +11,10 @@ import {
   Divider,
 } from 'antd';
 import { GoogleOutlined, LeftOutlined } from '@ant-design/icons';
-import { useAuthStore } from '../../../stores/authStore';
-import { isEmail, isVietnamesePhone } from '../../../utils/format';
-import api from '../../../lib/api';
-import toast from '../../../lib/toast';
+import { useAuthStore } from '@/stores/authStore';
+import { isEmail, isVietnamesePhone } from '@/utils/format';
+import api from '@/lib/api';
+import toast from '@/lib/toast';
 
 const { Text, Title } = Typography;
 
@@ -29,10 +32,11 @@ export const AuthModal: React.FC<Props> = ({ open, onClose }) => {
   const [countdown, setCountdown] = useState(0);
   const { login } = useAuthStore();
   const [form] = Form.useForm();
+  const router = useRouter();
 
   useEffect(() => {
     if (!open) { setStep('initial'); setContact(''); form.resetFields(); }
-  }, [open]);
+  }, [open, form]);
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -69,7 +73,7 @@ export const AuthModal: React.FC<Props> = ({ open, onClose }) => {
   };
 
   // ── REGISTER ───────────────────────────────────────
-  const handleRegister = async (values: any) => {
+  const handleRegister = async (values: Record<string, string>) => {
     setLoading(true);
     try {
       const { data } = await api.post('/auth/register', { contact, ...values });
@@ -81,7 +85,7 @@ export const AuthModal: React.FC<Props> = ({ open, onClose }) => {
   };
 
   // ── LOGIN with password ────────────────────────────
-  const handleLogin = async (values: any) => {
+  const handleLogin = async (values: Record<string, string>) => {
     setLoading(true);
     try {
       const { data } = await api.post('/auth/login', { contact, password: values.password });
@@ -93,7 +97,7 @@ export const AuthModal: React.FC<Props> = ({ open, onClose }) => {
   };
 
   // ── LOGIN with OTP ─────────────────────────────────
-  const handleLoginOtp = async (values: any) => {
+  const handleLoginOtp = async (values: Record<string, string>) => {
     setLoading(true);
     try {
       const { data } = await api.post('/auth/login-otp', { contact, otp: values.otp });
@@ -105,7 +109,7 @@ export const AuthModal: React.FC<Props> = ({ open, onClose }) => {
   };
 
   // ── RESET PASSWORD ─────────────────────────────────
-  const handleResetPassword = async (values: any) => {
+  const handleResetPassword = async (values: Record<string, string>) => {
     setLoading(true);
     try {
       await api.post('/auth/reset-password', { contact, otp: values.otp, newPassword: values.newPassword });
@@ -116,13 +120,13 @@ export const AuthModal: React.FC<Props> = ({ open, onClose }) => {
 
   const redirectByRole = (role: string) => {
     if (role === 'ADMIN' || role === 'SALE') {
-      window.location.href = '/admin';
+      router.push('/admin');
     }
     // USER stays on current page
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/auth/google`;
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/auth/google`;
   };
 
   // ── RENDERS ────────────────────────────────────────

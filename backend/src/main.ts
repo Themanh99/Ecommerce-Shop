@@ -1,7 +1,7 @@
 ﻿import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -36,7 +36,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
-  const port = config.get<number>('PORT', 3000);
+  const port = config.get<number>('PORT', 8080);
   await app.listen(port);
   logger.log(`Backend running on http://localhost:${port}/api`, 'Bootstrap');
 }

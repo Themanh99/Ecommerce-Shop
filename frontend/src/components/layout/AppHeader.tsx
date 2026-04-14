@@ -1,4 +1,8 @@
+'use client';
+
 import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { MenuProps } from 'antd';
 import {
   Layout,
@@ -20,7 +24,7 @@ import {
   DashboardOutlined,
   AppstoreOutlined,
 } from '@ant-design/icons';
-import { useAuthStore } from '../../stores/authStore';
+import { useAuthStore } from '@/stores/authStore';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -42,6 +46,7 @@ export function AppHeader({ onLoginClick, cartCount = 0 }: Props) {
   const { user, isAuthenticated, logout } = useAuthStore();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+  const router = useRouter();
 
   const userMenuItems: MenuProps['items'] = [
     {
@@ -55,7 +60,7 @@ export function AppHeader({ onLoginClick, cartCount = 0 }: Props) {
             key: 'admin',
             icon: <DashboardOutlined />,
             label: 'Quản trị',
-            onClick: () => (window.location.href = '/admin'),
+            onClick: () => router.push('/admin'),
           },
         ]
       : []),
@@ -86,12 +91,12 @@ export function AppHeader({ onLoginClick, cartCount = 0 }: Props) {
         }}
       >
         {/* Logo */}
-        <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
           <AppstoreOutlined style={{ fontSize: 24, color: '#1677ff' }} />
           <span style={{ fontWeight: 700, fontSize: 20, color: '#1677ff', letterSpacing: -0.5 }}>
             EShop
           </span>
-        </a>
+        </Link>
 
         {/* Search — Desktop only */}
         <div className="header-search">
@@ -109,7 +114,7 @@ export function AppHeader({ onLoginClick, cartCount = 0 }: Props) {
         {/* Nav links — Desktop only */}
         <nav className="header-nav">
           {NAV_LINKS.map((link) => (
-            <a
+            <Link
               key={link.key}
               href={`/category/${link.key}`}
               style={{
@@ -131,7 +136,7 @@ export function AppHeader({ onLoginClick, cartCount = 0 }: Props) {
               }}
             >
               {link.label}
-            </a>
+            </Link>
           ))}
         </nav>
 
@@ -201,14 +206,14 @@ export function AppHeader({ onLoginClick, cartCount = 0 }: Props) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 24 }}>
           {NAV_LINKS.map((link) => (
-            <a
+            <Link
               key={link.key}
               href={`/category/${link.key}`}
               style={{ padding: '12px 16px', borderRadius: 8, color: '#333', fontWeight: 500, fontSize: 15 }}
               onClick={() => setDrawerOpen(false)}
             >
               {link.label}
-            </a>
+            </Link>
           ))}
         </div>
 
