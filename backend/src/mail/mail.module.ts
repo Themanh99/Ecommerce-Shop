@@ -13,12 +13,21 @@ import { MailService } from './mail.service';
           host: config.get('MAIL_HOST', 'smtp.gmail.com'),
           port: config.get<number>('MAIL_PORT', 587),
           secure: false,
-          auth: {
-            user: config.get('MAIL_USER'),
-            pass: config.get('MAIL_PASS'),
-          },
+          ...(config.get('MAIL_USER')
+            ? {
+                auth: {
+                  user: config.get('MAIL_USER'),
+                  pass: config.get('MAIL_PASS'),
+                },
+              }
+            : {}),
         },
-        defaults: { from: config.get('MAIL_FROM', '"EShop" <no-reply@eshop.com>') },
+        defaults: {
+          from: config.get(
+            'MAIL_FROM',
+            '"MoonKid" <no-reply@moonkid.local>',
+          ),
+        },
       }),
     }),
   ],

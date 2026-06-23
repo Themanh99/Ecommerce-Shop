@@ -8,24 +8,20 @@ import { products, reviews } from '@/data/store';
 
 const dressStyles = [
   {
-    name: 'Casual',
-    image:
-      '/images/store/product-1.jpg',
+    name: 'Bé trai',
+    image: '/images/store/moonkid-boys-girls.jpg',
   },
   {
-    name: 'Formal',
-    image:
-      '/images/store/formal.jpg',
+    name: 'Bé gái',
+    image: '/images/store/moonkid-winter.jpg',
   },
   {
-    name: 'Party',
-    image:
-      '/images/store/party.jpg',
+    name: 'Sơ sinh',
+    image: '/images/store/moonkid-baby.jpg',
   },
   {
-    name: 'Gym',
-    image:
-      '/images/store/gym.jpg',
+    name: 'Năng động',
+    image: '/images/store/moonkid-sport.jpg',
   },
 ];
 
@@ -37,28 +33,31 @@ export default function HomePage() {
       <section className="hero">
         <div className="container hero-grid">
           <div className="hero-copy">
-            <p className="eyebrow">New season / 2026</p>
-            <h1>Find clothes that match your style</h1>
+            <p className="eyebrow">Bộ sưu tập mới / 2026</p>
+            <h1>
+              <span>Để bé tự tin</span>
+              <span>khám phá thế giới</span>
+            </h1>
             <p className="hero-description">
-              Browse through our diverse range of meticulously crafted
-              garments, designed to bring out your individuality and cater to
-              your sense of style.
+              Quần áo mềm mại, an toàn và thoải mái cho từng bước lớn khôn.
+              MoonKid đồng hành cùng bé từ những ngày đầu tiên đến mọi cuộc
+              phiêu lưu tuổi thơ.
             </p>
             <Link className="button button-dark hero-cta" href="/shop">
-              Shop now
+              Mua sắm ngay
             </Link>
-            <div className="hero-stats" aria-label="Shop statistics">
+            <div className="hero-stats" aria-label="Cam kết của MoonKid">
               <div>
-                <strong>200+</strong>
-                <span>International brands</span>
+                <strong>0–12</strong>
+                <span>Độ tuổi phù hợp</span>
               </div>
               <div>
-                <strong>2,000+</strong>
-                <span>High-quality products</span>
+                <strong>7 ngày</strong>
+                <span>Hỗ trợ đổi size</span>
               </div>
               <div>
-                <strong>30,000+</strong>
-                <span>Happy customers</span>
+                <strong>30.000+</strong>
+                <span>Gia đình tin chọn</span>
               </div>
             </div>
           </div>
@@ -69,8 +68,8 @@ export default function HomePage() {
             <span className="spark spark-large">✦</span>
             <span className="spark spark-small">✦</span>
             <Image
-              src="/images/store/hero.jpg"
-              alt="Models wearing contemporary streetwear"
+              src="/images/store/moonkid-hero.jpg"
+              alt="Nhóm trẻ em mặc trang phục thời trang của MoonKid"
               fill
               priority
               sizes="(max-width: 760px) 100vw, 50vw"
@@ -82,16 +81,16 @@ export default function HomePage() {
 
       <div className="brand-strip" id="brands" aria-label="Featured brands">
         <div className="container brand-row">
-          <span>VERSACE</span>
-          <span>ZARA</span>
-          <span>GUCCI</span>
-          <span>PRADA</span>
-          <span>Calvin Klein</span>
+          <span>SƠ SINH</span>
+          <span>BÉ GÁI</span>
+          <span>BÉ TRAI</span>
+          <span>ĐỒ MẶC NHÀ</span>
+          <span>PHỤ KIỆN</span>
         </div>
       </div>
 
       <ProductSection
-        title="New arrivals"
+        title="Sản phẩm mới"
         products={products.slice(0, 4)}
         href="/shop?sort=new"
       />
@@ -99,14 +98,14 @@ export default function HomePage() {
       <div className="section-divider container" />
 
       <ProductSection
-        title="Top selling"
+        title="Bán chạy nhất"
         products={products.slice(4, 8)}
         href="/shop?sort=popular"
       />
 
       <section className="section">
         <div className="container style-browser">
-          <h2>Browse by dress style</h2>
+          <h2>Mua sắm theo nhu cầu</h2>
           <div className="style-grid">
             {dressStyles.map((style, index) => (
               <Link
@@ -117,7 +116,7 @@ export default function HomePage() {
                 <span>{style.name}</span>
                 <Image
                   src={style.image}
-                  alt={`${style.name} clothing`}
+                  alt={`Thời trang trẻ em: ${style.name}`}
                   fill
                   sizes="(max-width: 760px) 50vw, 40vw"
                 />
@@ -130,7 +129,7 @@ export default function HomePage() {
       <section className="section review-section">
         <div className="container">
           <div className="section-heading review-heading">
-            <h2>Our happy customers</h2>
+            <h2>Ba mẹ nói gì về MoonKid</h2>
             <div className="review-arrows" aria-hidden="true">
               <span>←</span>
               <span>→</span>
@@ -170,7 +169,7 @@ function ProductSection({
         <div className="section-heading">
           <h2>{title}</h2>
           <Link href={href} className="text-link mobile-only-link">
-            View all <ArrowRightOutlined />
+            Xem tất cả <ArrowRightOutlined />
           </Link>
         </div>
         <div className="product-grid">
@@ -180,7 +179,7 @@ function ProductSection({
         </div>
         <div className="section-action">
           <Link href={href} className="button button-outline">
-            View all
+            Xem tất cả
           </Link>
         </div>
       </div>

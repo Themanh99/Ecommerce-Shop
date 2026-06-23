@@ -33,6 +33,7 @@
    - [ADDRESS — Địa chỉ giao hàng](#-address--địa-chỉ-giao-hàng)
    - [BANNER — Trang chủ](#-banner--trang-chủ)
    - [AUDIT LOG — Nhật ký](#-audit-log--nhật-ký)
+   - [SYSTEM SETTINGS & FOOTER — Cấu hình & Footer](#-system-settings--footer--cấu-hình--footer)
 4. [Giải thích thiết kế quan trọng](#4-giải-thích-thiết-kế-quan-trọng)
 5. [Index & Performance](#5-index--performance)
 
@@ -66,6 +67,9 @@
 | 22 | `Address` | Địa chỉ giao hàng của user | Address |
 | 23 | `Banner` | Banner trang chủ | Banner |
 | 24 | `AuditLog` | Lịch sử thao tác Admin/Sale | Audit |
+| 25 | `SystemSetting` | Cấu hình chung và MXH website | System |
+| 26 | `FooterColumn` | Cột danh mục ở chân trang | Footer |
+| 27 | `FooterLink` | Đường dẫn chi tiết ở chân trang | Footer |
 
 ---
 
@@ -855,6 +859,56 @@ pending → confirmed → processing → shipping → done
 
 ---
 
+### ⚙️ SYSTEM SETTINGS & FOOTER — Cấu hình & Footer
+
+#### `SystemSetting` — Cấu hình chung của website
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|-----|------|-----------|---------|
+| `id` | `String` | PK | |
+| `shopName` | `String` | NOT NULL | Tên cửa hàng (mặc định: "BabyShop") |
+| `logoUrl` | `String` | nullable | URL ảnh Logo Header & Footer |
+| `faviconUrl` | `String` | nullable | URL ảnh Favicon website |
+| `description` | `String` | nullable | Giới thiệu ngắn của shop ở footer |
+| `phone` | `String` | nullable | SĐT Hotline hiển thị ở footer/header |
+| `email` | `String` | nullable | Email hỗ trợ hiển thị |
+| `address` | `String` | nullable | Địa chỉ văn phòng/cửa hàng |
+| `twitterUrl` | `String` | nullable | Liên kết Twitter |
+| `facebookUrl` | `String` | nullable | Liên kết Facebook |
+| `instagramUrl` | `String` | nullable | Liên kết Instagram |
+| `githubUrl` | `String` | nullable | Liên kết GitHub |
+| `youtubeUrl` | `String` | nullable | Liên kết Youtube |
+| `shippingFeeDefault` | `Decimal` | default `30000` | Phí vận chuyển mặc định |
+| `freeShippingThreshold` | `Decimal` | default `500000` | Ngưỡng được miễn phí vận chuyển |
+| `orderExpiryHours` | `Int` | default `12` | Số giờ đơn pending ck sẽ tự hủy |
+| `updatedAt` | `DateTime` | auto_update | |
+
+#### `FooterColumn` — Cột liên kết ở Footer
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|-----|------|-----------|---------|
+| `id` | `String` | PK | |
+| `title` | `String` | NOT NULL | Tiêu đề cột (VD: "COMPANY", "HELP") |
+| `sortOrder` | `Int` | default `0` | Thứ tự hiển thị cột |
+| `isActive` | `Boolean` | default `true` | Bật/tắt cột |
+| `createdAt` | `DateTime` | auto | |
+| `updatedAt` | `DateTime` | auto_update | |
+
+#### `FooterLink` — Đường dẫn chi tiết trong cột Footer
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|-----|------|-----------|---------|
+| `id` | `String` | PK | |
+| `footerColumnId` | `String` | FK | Thuộc cột nào |
+| `label` | `String` | NOT NULL | Tên hiển thị (VD: "About", "Career") |
+| `url` | `String` | NOT NULL | Đường dẫn (VD: "/about", "https://...") |
+| `sortOrder` | `Int` | default `0` | Thứ tự hiển thị link trong cột |
+| `isActive` | `Boolean` | default `true` | Bật/tắt link |
+| `createdAt` | `DateTime` | auto | |
+| `updatedAt` | `DateTime` | auto_update | |
+
+---
+
 ## 4. Giải thích thiết kế quan trọng
 
 ### 4.1 Tại sao dùng `stock` + `stockReserved` thay vì 1 trường?
@@ -966,6 +1020,9 @@ CREATE INDEX idx_inventory_created ON "InventoryLog"("createdAt");
 -- Audit
 CREATE INDEX idx_audit_entity ON "AuditLog"(entity, "entityId");
 CREATE INDEX idx_audit_user   ON "AuditLog"("userId");
+
+-- Footer Links
+CREATE INDEX idx_footerlink_column ON "FooterLink"("footerColumnId");
 ```
 
 ---
@@ -973,7 +1030,7 @@ CREATE INDEX idx_audit_user   ON "AuditLog"("userId");
 ## ⚡ Tóm tắt nhanh
 
 ```
-24 bảng tổng cộng
+27 bảng tổng cộng
 ├── 2  bảng Auth (User, OtpCode)
 ├── 2  bảng Catalog (Category, Tag)
 ├── 6  bảng Product (Product, ProductTag, OptionType, OptionValue, ProductVariant, VariantOption)
@@ -985,5 +1042,7 @@ CREATE INDEX idx_audit_user   ON "AuditLog"("userId");
 ├── 3  bảng Order (Order, OrderItem, OrderStatusLog)
 ├── 1  bảng Address
 ├── 1  bảng Banner
-└── 1  bảng AuditLog
+├── 1  bảng AuditLog
+├── 1  bảng SystemSetting
+└── 2  bảng Footer (FooterColumn, FooterLink)
 ```

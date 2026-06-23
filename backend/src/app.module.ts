@@ -1,4 +1,4 @@
-﻿import { Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -8,8 +8,10 @@ import { API_LIMITS } from './common/constants/app.constants';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { AppLoggerService } from './common/services/logger.service';
 import { MailModule } from './mail/mail.module';
+import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -27,7 +29,9 @@ import { RedisModule } from './redis/redis.module';
     PrismaModule,
     RedisModule,
     MailModule,
+    HealthModule,
     AuthModule,
+    SettingsModule,
   ],
   providers: [
     AppLoggerService,

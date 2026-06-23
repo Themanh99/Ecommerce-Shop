@@ -1,6 +1,6 @@
-# EShop Frontend
+# MoonKid Frontend
 
-Frontend của EShop đã được chuyển từ React + Vite sang Next.js 16, React 19
+Frontend của MoonKid được xây dựng bằng Next.js 16 và React 19.
 và App Router.
 
 ## Yêu cầu

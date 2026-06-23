@@ -1,0 +1,11 @@
+<svg width="900" height="1000" viewBox="0 0 900 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="1000" rx="52" fill="#F3F0FF"/>
+  <circle cx="450" cy="420" r="214" fill="#DDD5FF"/>
+  <circle cx="525" cy="350" r="190" fill="#F3F0FF"/>
+  <path d="M450 235L471 282L522 288L484 323L494 373L450 348L406 373L416 323L378 288L429 282L450 235Z" fill="#FFC94A"/>
+  <circle cx="315" cy="260" r="13" fill="#FFC94A"/>
+  <circle cx="607" cy="515" r="9" fill="#FFC94A"/>
+  <circle cx="270" cy="545" r="7" fill="#7B61FF"/>
+  <text x="450" y="735" text-anchor="middle" fill="#211A44" font-family="Arial, sans-serif" font-size="74" font-weight="700">MoonKid</text>
+  <text x="450" y="800" text-anchor="middle" fill="#746E8D" font-family="Arial, sans-serif" font-size="28">Ảnh sản phẩm sẽ được cập nhật từ API</text>
+</svg>

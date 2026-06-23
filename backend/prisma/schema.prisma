@@ -9,7 +9,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ============================================================
@@ -600,4 +599,63 @@ model AuditLog {
   @@index([userId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ============================================================
+// SYSTEM SETTINGS & FOOTER (Master Tables)
+// ============================================================
+
+model SystemSetting {
+  id                    String   @id @default(cuid())
+  shopName              String   @default("MoonKid")
+  logoUrl               String?  // Logo Header/Footer
+  faviconUrl            String?  // Favicon website
+  description           String?  // Giới thiệu ngắn ở footer
+  phone                 String?  // Hotline
+  email                 String?  // Support Email
+  address               String?  // Địa chỉ văn phòng
+  
+  // Social Media URL
+  twitterUrl            String?
+  facebookUrl           String?
+  instagramUrl          String?
+  githubUrl             String?
+  youtubeUrl            String?
+
+  // Shipping & Order Configuration
+  shippingFeeDefault    Decimal  @default(30000) @db.Decimal(12, 0)
+  freeShippingThreshold Decimal  @default(500000) @db.Decimal(12, 0)
+  orderExpiryHours      Int      @default(12) // Thời gian tự động hủy đơn pending ck
+
+  updatedAt             DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+model FooterColumn {
+  id        String       @id @default(cuid())
+  title     String       // "COMPANY", "HELP", "FAQ", "RESOURCES"
+  sortOrder Int          @default(0)
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  links     FooterLink[]
+
+  @@map("footer_columns")
+}
+
+model FooterLink {
+  id             String       @id @default(cuid())
+  footerColumnId String
+  footerColumn   FooterColumn @relation(fields: [footerColumnId], references: [id], onDelete: Cascade)
+  label          String       // "About", "Customer Support", "Free eBooks"
+  url            String       // Link redirect, VD: "/about", "/help/delivery"
+  sortOrder      Int          @default(0)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([footerColumnId])
+  @@map("footer_links")
 }

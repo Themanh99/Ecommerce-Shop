@@ -36,8 +36,10 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
-  const port = config.get<number>('PORT', 8080);
-  await app.listen(port);
+  const port = config.get<number>('PORT', 3000);
+  const host = config.get<string>('HOST', '0.0.0.0');
+  app.enableShutdownHooks();
+  await app.listen(port, host);
   logger.log(`Backend running on http://localhost:${port}/api`, 'Bootstrap');
 }
 

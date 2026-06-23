@@ -12,16 +12,16 @@ import { formatPrice, products, reviews, type Product } from '@/data/store';
 export function ProductDetail({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1);
   const [color, setColor] = useState(product.colors[0]);
-  const [size, setSize] = useState('Large');
+  const [size, setSize] = useState('3–5 tuổi');
 
   return (
     <main>
       <AppHeader />
       <div className="container">
         <div className="breadcrumbs">
-          <Link href="/">Home</Link>
+          <Link href="/">Trang chủ</Link>
           <RightOutlined />
-          <Link href="/shop">Shop</Link>
+          <Link href="/shop">Sản phẩm</Link>
           <RightOutlined />
           <span>{product.category}</span>
         </div>
@@ -64,13 +64,12 @@ export function ProductDetail({ product }: { product: Product }) {
               {product.discount ? <span>-{product.discount}%</span> : null}
             </div>
             <p className="product-copy">
-              This graphic t-shirt is perfect for any occasion. Crafted from a
-              soft and breathable fabric, it offers superior comfort and style
-              throughout the day.
+              Thiết kế dành riêng cho làn da nhạy cảm của bé, ưu tiên chất liệu
+              mềm mại, thoáng khí và thuận tiện vận động suốt ngày dài.
             </p>
 
             <div className="choice-group">
-              <p>Select Colors</p>
+              <p>Chọn màu sắc</p>
               <div className="choice-colors">
                 {product.colors.map((item) => (
                   <button
@@ -78,7 +77,7 @@ export function ProductDetail({ product }: { product: Product }) {
                     key={item}
                     style={{ background: item }}
                     onClick={() => setColor(item)}
-                    aria-label={`Select color ${item}`}
+                    aria-label={`Chọn màu ${item}`}
                   >
                     {color === item ? <CheckOutlined style={{ color: '#fff' }} /> : null}
                   </button>
@@ -87,9 +86,9 @@ export function ProductDetail({ product }: { product: Product }) {
             </div>
 
             <div className="choice-group">
-              <p>Choose Size</p>
+              <p>Chọn kích cỡ</p>
               <div className="choice-sizes">
-                {['Small', 'Medium', 'Large', 'X-Large'].map((item) => (
+                {['1–2 tuổi', '3–5 tuổi', '6–8 tuổi', '9–12 tuổi'].map((item) => (
                   <button
                     className={`pill ${size === item ? 'active' : ''}`}
                     onClick={() => setSize(item)}
@@ -108,7 +107,7 @@ export function ProductDetail({ product }: { product: Product }) {
                 <button onClick={() => setQuantity((value) => value + 1)}>+</button>
               </div>
               <Link href="/cart" className="button button-dark">
-                Add to Cart
+                Thêm vào giỏ
               </Link>
             </div>
           </div>
@@ -116,12 +115,12 @@ export function ProductDetail({ product }: { product: Product }) {
 
         <section className="detail-reviews">
           <div className="tabs">
-            <button>Product Details</button>
-            <button className="active">Rating & Reviews</button>
-            <button>FAQs</button>
+            <button>Thông tin sản phẩm</button>
+            <button className="active">Đánh giá</button>
+            <button>Hỏi đáp</button>
           </div>
           <div className="section-heading review-heading">
-            <h2>All Reviews</h2>
+            <h2>Tất cả đánh giá</h2>
             <span>({reviews.length * 150})</span>
           </div>
           <div className="review-grid">
@@ -138,7 +137,7 @@ export function ProductDetail({ product }: { product: Product }) {
 
           <div className="section product-section">
             <div className="section-heading">
-              <h2>You might also like</h2>
+              <h2>Có thể bé sẽ thích</h2>
             </div>
             <div className="product-grid">
               {products.slice(1, 5).map((item) => (

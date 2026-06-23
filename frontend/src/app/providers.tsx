@@ -43,7 +43,7 @@ export function Providers({ children }: { children: ReactNode }) {
         locale={viVN}
         theme={{
           token: {
-            colorPrimary: '#000000',
+            colorPrimary: '#7b61ff',
             borderRadius: 12,
             fontFamily: "Inter, 'Segoe UI', sans-serif",
           },

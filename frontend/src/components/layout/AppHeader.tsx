@@ -18,8 +18,8 @@ export function AppHeader() {
   return (
     <>
       <div className="announcement">
-        Sign up and get 20% off your first order.{' '}
-        <button onClick={() => setAuthOpen(true)}>Sign up now</button>
+        Đăng ký thành viên và nhận ưu đãi 20% cho đơn đầu tiên.{' '}
+        <button onClick={() => setAuthOpen(true)}>Đăng ký ngay</button>
       </div>
       <header className="site-header">
         <div className="container header-row">
@@ -32,31 +32,31 @@ export function AppHeader() {
           </button>
 
           <Link className="logo" href="/">
-            SHOP.CO
+            <span className="logo-moon">☾</span> MoonKid
           </Link>
 
           <nav className={`main-nav ${menuOpen ? 'main-nav-open' : ''}`}>
-            <Link href="/shop">Shop</Link>
-            <Link href="/shop?sort=sale">On Sale</Link>
-            <Link href="/shop?sort=new">New Arrivals</Link>
-            <Link href="/#brands">Brands</Link>
+            <Link href="/shop">Sản phẩm</Link>
+            <Link href="/shop?age=baby">Đồ sơ sinh</Link>
+            <Link href="/shop?gender=girl">Bé gái</Link>
+            <Link href="/shop?gender=boy">Bé trai</Link>
           </nav>
 
           <label className="search-box">
             <SearchOutlined />
-            <input placeholder="Search for products..." aria-label="Search" />
+            <input placeholder="Tìm quần áo cho bé..." aria-label="Tìm kiếm" />
           </label>
 
           <div className="header-actions">
-            <button className="icon-button mobile-search" aria-label="Search">
+            <button className="icon-button mobile-search" aria-label="Tìm kiếm">
               <SearchOutlined />
             </button>
-            <Link className="icon-button" href="/cart" aria-label="Cart">
+            <Link className="icon-button" href="/cart" aria-label="Giỏ hàng">
               <ShoppingCartOutlined />
             </Link>
             <button
               className="icon-button"
-              aria-label="Account"
+              aria-label="Tài khoản"
               onClick={() => setAuthOpen(true)}
             >
               <UserOutlined />

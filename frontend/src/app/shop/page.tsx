@@ -24,20 +24,20 @@ export default function ShopPage() {
       <AppHeader />
       <div className="container">
         <div className="breadcrumbs">
-          <Link href="/">Home</Link>
+          <Link href="/">Trang chủ</Link>
           <RightOutlined />
-          <span>Casual</span>
+          <span>Thời trang trẻ em</span>
         </div>
 
         <div className="shop-layout">
           <aside className="filters">
             <div className="filters-header">
-              <h2>Filters</h2>
+              <h2>Bộ lọc</h2>
               <FilterOutlined />
             </div>
 
             <div className="filter-group category-list">
-              {['T-shirts', 'Shorts', 'Shirts', 'Hoodie', 'Jeans'].map((item) => (
+              {['Áo thun', 'Quần short', 'Áo sơ mi', 'Áo khoác', 'Quần jeans'].map((item) => (
                 <div className="filter-label" key={item}>
                   <span>{item}</span>
                   <RightOutlined />
@@ -47,19 +47,19 @@ export default function ShopPage() {
 
             <div className="filter-group">
               <div className="filter-label">
-                <span>Price</span>
+                <span>Khoảng giá</span>
                 <span>⌃</span>
               </div>
               <div className="price-track" />
               <div className="price-values">
-                <span>$50</span>
-                <span>$200</span>
+                <span>100.000đ</span>
+                <span>500.000đ</span>
               </div>
             </div>
 
             <div className="filter-group">
               <div className="filter-label">
-                <span>Colors</span>
+                <span>Màu sắc</span>
                 <span>⌃</span>
               </div>
               <div className="color-list">
@@ -75,20 +75,20 @@ export default function ShopPage() {
 
             <div className="filter-group">
               <div className="filter-label">
-                <span>Size</span>
+                <span>Kích cỡ</span>
                 <span>⌃</span>
               </div>
               <div className="size-list">
                 {[
-                  'XX-Small',
-                  'X-Small',
-                  'Small',
-                  'Medium',
-                  'Large',
-                  'X-Large',
-                  'XX-Large',
+                  '0–3 tháng',
+                  '3–6 tháng',
+                  '6–12 tháng',
+                  '1–2 tuổi',
+                  '3–5 tuổi',
+                  '6–8 tuổi',
+                  '9–12 tuổi',
                 ].map((size) => (
-                  <button className={size === 'Large' ? 'pill active' : 'pill'} key={size}>
+                  <button className={size === '3–5 tuổi' ? 'pill active' : 'pill'} key={size}>
                     {size}
                   </button>
                 ))}
@@ -97,10 +97,10 @@ export default function ShopPage() {
 
             <div className="filter-group category-list">
               <div className="filter-label">
-                <span>Dress Style</span>
+                <span>Nhu cầu</span>
                 <span>⌃</span>
               </div>
-              {['Casual', 'Formal', 'Party', 'Gym'].map((style) => (
+              {['Đi học', 'Đi chơi', 'Dự tiệc', 'Vận động'].map((style) => (
                 <div className="filter-label" key={style}>
                   <span>{style}</span>
                   <RightOutlined />
@@ -108,20 +108,20 @@ export default function ShopPage() {
               ))}
             </div>
 
-            <button className="button button-dark filter-apply">Apply Filter</button>
+            <button className="button button-dark filter-apply">Áp dụng bộ lọc</button>
           </aside>
 
           <section>
             <div className="shop-heading">
-              <h1 className="page-title">Casual</h1>
+              <h1 className="page-title">Sản phẩm cho bé</h1>
               <p>
-                <span>Showing 1–9 of 100 Products</span>{' '}
+                <span>Hiển thị 1–9 trong 100 sản phẩm</span>{' '}
                 <label>
-                  Sort by:{' '}
+                  Sắp xếp:{' '}
                   <select defaultValue="popular">
-                    <option value="popular">Most Popular</option>
-                    <option value="new">Newest</option>
-                    <option value="price-low">Price: Low to High</option>
+                    <option value="popular">Phổ biến nhất</option>
+                    <option value="new">Mới nhất</option>
+                    <option value="price-low">Giá thấp đến cao</option>
                   </select>
                 </label>
               </p>
@@ -133,7 +133,7 @@ export default function ShopPage() {
               ))}
             </div>
 
-            <nav className="pagination" aria-label="Product pagination">
+            <nav className="pagination" aria-label="Phân trang sản phẩm">
               <button>←</button>
               <button className="active">1</button>
               <button>2</button>

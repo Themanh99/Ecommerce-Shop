@@ -88,3 +88,22 @@ Trang quan trọng nhất, nơi diễn ra quyết định mua hàng.
 - **Action: "Thêm vào giỏ" / "Mua ngay":**
   - Validation: Cảnh báo đỏ (Toast Error) nếu người dùng quên chọn Size hoặc Màu mà đã bấm Thêm vào Giỏ.
   - Sau khi thêm -> Giỏ hàng chớp sáng, popup Thông báo bay ra: "Đã thêm 1 Áo Polo vào giỏ!". Nút "Mua ngay" sẽ dẫn thẳng sang màn Checkout.
+
+## 5. Chân trang & Thông tin chung (Footer & Shop settings)
+Tất cả các thông tin chung của website như Logo, Số hotline, Email liên hệ, Bản quyền và các Link chân trang đều được quản lý động từ Master Tables.
+
+### A. Giao diện chân trang (Mockup Footer)
+```text
+--------------------------------------------------------------
+[ SHOP.CO Logo ]                   | COMPANY       | HELP             | FAQ             | RESOURCES
+"We have clothes that suit your..."| - About       | - Customer Supp  | - Account       | - Free eBooks
+[Twitter] [Facebook] [Insta] [Git] | - Features    | - Delivery Detail| - Manage Deliver| - Dev Tutorials
+                                   | - Works       | - Terms & Cond   | - Orders        | - How to - Blog
+                                   | - Career      | - Privacy Policy | - Payments      | - Youtube Playli
+--------------------------------------------------------------
+BabyShop © 2000-2026, All Rights Reserved
+```
+
+### B. Logic hoạt động
+- **Load cấu hình:** Khi ứng dụng khởi chạy lần đầu, ứng dụng storefront sẽ gọi API `GET /api/settings` và `GET /api/footer` (đã được cache ở Redis) để nhận cấu hình bao gồm Logo, Description, Social Links, Hotline và sơ đồ Footer Link.
+- **Dynamic Render:** Footer sẽ tự động render số lượng cột (FooterColumn) và các đường dẫn bên dưới (FooterLink) theo đúng sắp xếp `sortOrder` nhận được từ API.

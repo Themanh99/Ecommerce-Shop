@@ -6,11 +6,11 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: 'SHOP.CO — Clothes that match your style',
-    template: '%s | SHOP.CO',
+    default: 'MoonKid — Thời trang cho bé',
+    template: '%s | MoonKid',
   },
   description:
-    'Discover contemporary clothing for every style, from everyday essentials to standout pieces.',
+    'MoonKid mang đến quần áo trẻ em thoải mái, an toàn và đáng yêu cho bé từ sơ sinh đến 12 tuổi.',
 };
 
 export const viewport: Viewport = {
@@ -20,7 +20,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="vi">
       <body>
         <AntdRegistry>
           <Providers>{children}</Providers>

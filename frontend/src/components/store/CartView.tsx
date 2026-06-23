@@ -9,9 +9,9 @@ import { AppFooter } from '@/components/layout/AppFooter';
 import { formatPrice, products } from '@/data/store';
 
 const initialItems = [
-  { product: products[0], size: 'Large', color: 'Olive', quantity: 1 },
-  { product: products[8], size: 'Medium', color: 'Red', quantity: 1 },
-  { product: products[6], size: 'Large', color: 'Blue', quantity: 1 },
+  { product: products[0], size: '3–5 tuổi', color: 'Xanh rêu', quantity: 1 },
+  { product: products[8], size: '1–2 tuổi', color: 'Đỏ', quantity: 1 },
+  { product: products[6], size: '3–5 tuổi', color: 'Xanh dương', quantity: 1 },
 ];
 
 export function CartView() {
@@ -44,11 +44,11 @@ export function CartView() {
       <AppHeader />
       <div className="container cart-page">
         <div className="breadcrumbs">
-          <Link href="/">Home</Link>
+          <Link href="/">Trang chủ</Link>
           <RightOutlined />
-          <span>Cart</span>
+          <span>Giỏ hàng</span>
         </div>
-        <h1 className="page-title">Your cart</h1>
+        <h1 className="page-title">Giỏ hàng của bạn</h1>
 
         <div className="cart-grid">
           <section className="cart-items">
@@ -65,15 +65,15 @@ export function CartView() {
                   </div>
                   <div>
                     <h3>{item.product.name}</h3>
-                    <p>Size: {item.size}</p>
-                    <p>Color: {item.color}</p>
+                    <p>Kích cỡ: {item.size}</p>
+                    <p>Màu sắc: {item.color}</p>
                     <strong>{formatPrice(item.product.price)}</strong>
                   </div>
                 </div>
                 <div className="cart-controls">
                   <button
                     className="remove-button"
-                    aria-label={`Remove ${item.product.name}`}
+                    aria-label={`Xóa ${item.product.name}`}
                     onClick={() =>
                       setItems((current) =>
                         current.filter(
@@ -96,29 +96,29 @@ export function CartView() {
           </section>
 
           <aside className="order-summary">
-            <h2>Order Summary</h2>
+            <h2>Tóm tắt đơn hàng</h2>
             <div className="summary-line">
-              <span>Subtotal</span>
+              <span>Tạm tính</span>
               <strong>{formatPrice(subtotal)}</strong>
             </div>
             <div className="summary-line discount">
-              <span>Discount (-20%)</span>
+              <span>Giảm giá (-20%)</span>
               <strong>-{formatPrice(discount)}</strong>
             </div>
             <div className="summary-line">
-              <span>Delivery Fee</span>
+              <span>Phí giao hàng</span>
               <strong>{formatPrice(delivery)}</strong>
             </div>
             <div className="summary-line summary-total">
-              <span>Total</span>
+              <span>Tổng cộng</span>
               <strong>{formatPrice(total)}</strong>
             </div>
             <div className="promo-row">
-              <input placeholder="Add promo code" aria-label="Promo code" />
-              <button className="button button-dark">Apply</button>
+              <input placeholder="Nhập mã giảm giá" aria-label="Mã giảm giá" />
+              <button className="button button-dark">Áp dụng</button>
             </div>
             <button className="button button-dark checkout-button">
-              Go to Checkout →
+              Tiến hành đặt hàng →
             </button>
           </aside>
         </div>
