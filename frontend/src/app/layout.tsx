@@ -6,11 +6,11 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: 'EShop — Mua sắm thông minh',
-    template: '%s | EShop',
+    default: 'SHOP.CO — Clothes that match your style',
+    template: '%s | SHOP.CO',
   },
   description:
-    'Mua sắm thông minh, giá tốt mỗi ngày với hàng triệu sản phẩm chính hãng.',
+    'Discover contemporary clothing for every style, from everyday essentials to standout pieces.',
 };
 
 export const viewport: Viewport = {
@@ -20,7 +20,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="vi">
+    <html lang="en">
       <body>
         <AntdRegistry>
           <Providers>{children}</Providers>
