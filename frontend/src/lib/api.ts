@@ -5,7 +5,8 @@
  *  1. Cookie-based auth (withCredentials)
  *  2. Silent 401 → refresh → retry (transparent token renewal)
  *  3. Global error toast — auto-shows backend message via toast.error()
- *  4. Per-request opt-out: pass { _silent: true } in axios config
+ *  4. NestJS response-envelope unwrapping
+ *  5. Per-request opt-out: pass { _silent: true } in axios config
  *
  * Usage:
  *   api.get('/products')                              // shows toast on error
@@ -15,20 +16,22 @@ import axios from 'axios';
 import type { InternalAxiosRequestConfig } from 'axios';
 import toast from './toast';
 
-// Extend BOTH config types to support _silent and _retry flags
+// Extend BOTH config types to support internal request flags.
 declare module 'axios' {
   interface AxiosRequestConfig {
     _silent?: boolean;
     _retry?: boolean;
+    _skipAuthRefresh?: boolean;
   }
   interface InternalAxiosRequestConfig {
     _silent?: boolean;
     _retry?: boolean;
+    _skipAuthRefresh?: boolean;
   }
 }
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || '/api',
   withCredentials: true,
 });
 
@@ -71,16 +74,35 @@ function getErrorMessage(error: unknown): string {
 
 // ── Response interceptors ─────────────────────────────────────────────────
 api.interceptors.response.use(
-  // ✅ Success — pass through unchanged
-  (res) => res,
+  // ✅ Success — unwrap the global NestJS { success, data, ... } envelope.
+  (res) => {
+    const payload = res.data;
+
+    if (
+      payload &&
+      typeof payload === 'object' &&
+      payload.success === true &&
+      Object.prototype.hasOwnProperty.call(payload, 'data')
+    ) {
+      res.data = payload.data;
+    }
+
+    return res;
+  },
 
   // ❌ Error handling
   async (error) => {
     const config = error.config as InternalAxiosRequestConfig;
     const status = error.response?.status;
+    const isRefreshRoute = config?.url?.includes('/auth/refresh') === true;
 
     // ── 401: try silent token refresh ──
-    if (status === 401 && !config._retry) {
+    if (
+      status === 401 &&
+      !config._retry &&
+      !config._skipAuthRefresh &&
+      !isRefreshRoute
+    ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -91,7 +113,10 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        await api.post('/auth/refresh', null, { _silent: true });
+        await api.post('/auth/refresh', null, {
+          _silent: true,
+          _skipAuthRefresh: true,
+        });
         processQueue(null);
         return api(config);
       } catch (refreshErr) {
@@ -108,7 +133,6 @@ api.interceptors.response.use(
 
     // ── Show toast unless caller opts out ──
     const isSilent = config?._silent === true;
-    const isRefreshRoute = config?.url?.includes('/auth/refresh');
 
     if (!isSilent && !isRefreshRoute) {
       const msg = getErrorMessage(error);

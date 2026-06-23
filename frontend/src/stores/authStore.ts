@@ -18,9 +18,10 @@ export interface AuthUser {
 interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
+  isInitialized: boolean;
   login: (user: AuthUser) => void;
   logout: () => Promise<void>;
-  fetchMe: () => Promise<void>;
+  fetchMe: () => Promise<AuthUser | null>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -28,20 +29,31 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       isAuthenticated: false,
+      isInitialized: false,
 
-      login: (user) => set({ user, isAuthenticated: true }),
+      login: (user) => set({ user, isAuthenticated: true, isInitialized: true }),
 
       logout: async () => {
-        try { await api.post('/auth/logout'); } catch { /* ignore */ }
-        set({ user: null, isAuthenticated: false });
+        set({ user: null, isAuthenticated: false, isInitialized: true });
+        try {
+          await api.post('/auth/logout', null, {
+            _silent: true,
+            _skipAuthRefresh: true,
+          });
+        } catch {
+          // The local session is already cleared even if the backend is offline.
+        }
       },
 
       fetchMe: async () => {
         try {
           const { data } = await api.get('/auth/me');
-          set({ user: data, isAuthenticated: true });
+          const user = data as AuthUser;
+          set({ user, isAuthenticated: true, isInitialized: true });
+          return user;
         } catch {
-          set({ user: null, isAuthenticated: false });
+          set({ user: null, isAuthenticated: false, isInitialized: true });
+          return null;
         }
       },
     }),

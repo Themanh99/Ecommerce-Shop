@@ -11,8 +11,8 @@ function CallbackHandler() {
   const { fetchMe } = useAuthStore();
 
   useEffect(() => {
-    const role = params.get('role');
-    fetchMe().then(() => {
+    void fetchMe().then((user) => {
+      const role = user?.role ?? params.get('role');
       if (role === 'ADMIN' || role === 'SALE') router.replace('/admin');
       else router.replace('/');
     });

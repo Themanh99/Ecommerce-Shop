@@ -194,7 +194,7 @@ export function AppHeader({ onLoginClick, cartCount = 0 }: Props) {
         placement="right"
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        width={280}
+        size={280}
       >
         <Input
           prefix={<SearchOutlined />}

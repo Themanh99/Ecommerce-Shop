@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { Spin } from 'antd';
 import { useAuthStore, type UserRole } from '@/stores/authStore';
 
 interface Props {
@@ -20,10 +21,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 }
 
 function ProtectedRoute({ children, allowedRoles, redirectTo = '/' }: Props) {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, isInitialized, user } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
+    if (!isInitialized) return;
+
     if (!isAuthenticated) {
       router.replace(redirectTo);
       return;
@@ -31,9 +34,16 @@ function ProtectedRoute({ children, allowedRoles, redirectTo = '/' }: Props) {
     if (allowedRoles && user && !allowedRoles.includes(user.role)) {
       router.replace(redirectTo);
     }
-  }, [isAuthenticated, user, allowedRoles, redirectTo, router]);
+  }, [isAuthenticated, isInitialized, user, allowedRoles, redirectTo, router]);
 
-  // Show nothing while checking auth
+  if (!isInitialized) {
+    return (
+      <div className="route-loading">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
   if (!isAuthenticated) return null;
   if (allowedRoles && user && !allowedRoles.includes(user.role)) return null;
 

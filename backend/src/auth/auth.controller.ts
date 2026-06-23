@@ -139,7 +139,7 @@ export class AuthController {
     const { user, accessToken, refreshToken } = await this.auth.googleLogin(googleUser);
     this.setTokenCookies(res, accessToken, refreshToken);
 
-    const frontendUrl = this.config.get('FRONTEND_URL', 'http://localhost:5173');
+    const frontendUrl = this.config.get('FRONTEND_URL', 'http://localhost:3000');
     res.redirect(`${frontendUrl}/auth/callback?role=${user.role}`);
   }
 }

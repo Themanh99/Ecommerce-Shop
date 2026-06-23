@@ -126,7 +126,9 @@ export const AuthModal: React.FC<Props> = ({ open, onClose }) => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/auth/google`;
+    window.location.assign(
+      `${process.env.NEXT_PUBLIC_API_URL || '/api'}/auth/google`,
+    );
   };
 
   // ── RENDERS ────────────────────────────────────────
@@ -287,7 +289,7 @@ export const AuthModal: React.FC<Props> = ({ open, onClose }) => {
       footer={null}
       centered
       width={420}
-      destroyOnClose
+      destroyOnHidden
     >
       {stepContent[step]}
     </Modal>
