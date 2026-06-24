@@ -1,420 +1,181 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import { useMemo } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Form, Input, InputNumber, Layout, Select, Space, Switch, Table, Tabs, Typography } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import { adminCatalogApi, type AdminBannerInput, type AdminCategoryInput, type AdminProductInput, type AdminTagInput } from '@/lib/adminCatalog';
-import type { BannerItem, CategoryNode, ProductCardItem, StorefrontTag } from '@/lib/storefront';
+import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import { Alert, Card, Empty, List, Progress, Skeleton, Space, Tag } from 'antd';
+import {
+  AlertOutlined,
+  DollarOutlined,
+  InboxOutlined,
+  ShoppingOutlined,
+  StarOutlined,
+  TeamOutlined,
+} from '@ant-design/icons';
+import { adminOpsApi, type RevenuePoint, type StatusPoint } from '@/lib/adminOps';
 import { formatPrice } from '@/lib/storefront';
-import { useAuthStore } from '@/stores/authStore';
 
-const { Content } = Layout;
-
-export default function AdminDashboard() {
-  const { message } = App.useApp();
-  const queryClient = useQueryClient();
-  const user = useAuthStore((state) => state.user);
-  const canManageMasterData = user?.role === 'ADMIN';
-
-  const categoriesQuery = useQuery({
-    queryKey: ['admin-categories'],
-    queryFn: adminCatalogApi.categories,
-  });
-  const tagsQuery = useQuery({ queryKey: ['admin-tags'], queryFn: adminCatalogApi.tags });
-  const bannersQuery = useQuery({ queryKey: ['admin-banners'], queryFn: adminCatalogApi.banners });
-  const productsQuery = useQuery({
-    queryKey: ['admin-products'],
-    queryFn: adminCatalogApi.products,
-  });
-
-  const categoryOptions = useMemo(
-    () =>
-      flattenCategories(categoriesQuery.data ?? []).map((category) => ({
-        label: category.name,
-        value: category.id,
-      })),
-    [categoriesQuery.data],
-  );
-  const tagOptions = useMemo(
-    () => (tagsQuery.data ?? []).map((tag) => ({ label: tag.name, value: tag.id })),
-    [tagsQuery.data],
-  );
-
-  const refreshCatalog = () => {
-    void queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
-    void queryClient.invalidateQueries({ queryKey: ['admin-tags'] });
-    void queryClient.invalidateQueries({ queryKey: ['admin-banners'] });
-    void queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-    void queryClient.invalidateQueries({ queryKey: ['storefront-home'] });
-    void queryClient.invalidateQueries({ queryKey: ['storefront-products'] });
-    void queryClient.invalidateQueries({ queryKey: ['storefront-filters'] });
-  };
-
-  const categoryMutation = useMutation({
-    mutationFn: adminCatalogApi.createCategory,
-    onSuccess: () => {
-      message.success('Đã tạo danh mục.');
-      refreshCatalog();
-    },
-  });
-  const tagMutation = useMutation({
-    mutationFn: adminCatalogApi.createTag,
-    onSuccess: () => {
-      message.success('Đã tạo tag.');
-      refreshCatalog();
-    },
-  });
-  const bannerMutation = useMutation({
-    mutationFn: adminCatalogApi.createBanner,
-    onSuccess: () => {
-      message.success('Đã tạo banner.');
-      refreshCatalog();
-    },
-  });
-  const productMutation = useMutation({
-    mutationFn: adminCatalogApi.createProduct,
-    onSuccess: () => {
-      message.success('Đã tạo sản phẩm.');
-      refreshCatalog();
-    },
-  });
-
-  const productColumns: ColumnsType<ProductCardItem> = [
-    { title: 'Sản phẩm', dataIndex: 'name', key: 'name' },
-    { title: 'Slug', dataIndex: 'slug', key: 'slug' },
-    {
-      title: 'Giá từ',
-      dataIndex: 'priceMin',
-      key: 'priceMin',
-      render: (value: number) => formatPrice(value),
-    },
-    {
-      title: 'Trạng thái',
-      key: 'status',
-      render: (_, record) => (record.isSoldOut ? 'Hết hàng' : 'Đang bán'),
-    },
-  ];
-  const categoryColumns: ColumnsType<CategoryNode> = [
-    { title: 'Danh mục', dataIndex: 'name', key: 'name' },
-    { title: 'Slug', dataIndex: 'slug', key: 'slug' },
-    { title: 'Thứ tự', dataIndex: 'sortOrder', key: 'sortOrder' },
-  ];
-  const tagColumns: ColumnsType<StorefrontTag> = [
-    { title: 'Tag', dataIndex: 'name', key: 'name' },
-    { title: 'Slug', dataIndex: 'slug', key: 'slug' },
-    { title: 'Màu', dataIndex: 'color', key: 'color' },
-  ];
-  const bannerColumns: ColumnsType<BannerItem> = [
-    { title: 'Banner', dataIndex: 'title', key: 'title' },
-    { title: 'Vị trí', dataIndex: 'position', key: 'position' },
-    { title: 'Link', dataIndex: 'linkUrl', key: 'linkUrl' },
-  ];
-
-  return (
-    <Layout className="admin-shell">
-      <Content className="admin-content">
-        <div className="admin-heading">
-          <div>
-            <p className="eyebrow">MoonKid Admin</p>
-            <Typography.Title level={2}>Quản trị dữ liệu storefront</Typography.Title>
-            <Typography.Text>
-              Nhập dữ liệu cơ bản ở đây, home/shop/detail sẽ đọc qua API storefront ngay.
-            </Typography.Text>
-          </div>
-          <div className="admin-user-pill">{user?.role}</div>
-        </div>
-
-        <Tabs
-          items={[
-            {
-              key: 'products',
-              label: 'Sản phẩm',
-              children: (
-                <Space direction="vertical" size="large" className="admin-tab">
-                  <Card title="Tạo sản phẩm nhanh">
-                    <Form
-                      layout="vertical"
-                      onFinish={(values) =>
-                        productMutation.mutate(buildProductPayload(values as ProductQuickForm))
-                      }
-                      initialValues={{
-                        price: 189000,
-                        stock: 20,
-                        color: 'Kem',
-                        size: '3-5 tuổi',
-                        isActive: true,
-                        isFeatured: true,
-                      }}
-                    >
-                      <div className="admin-form-grid">
-                        <Form.Item name="name" label="Tên sản phẩm" rules={[{ required: true }]}>
-                          <Input placeholder="Váy cotton MoonKid" />
-                        </Form.Item>
-                        <Form.Item name="slug" label="Slug" rules={[{ required: true }]}>
-                          <Input placeholder="vay-cotton-moonkid" />
-                        </Form.Item>
-                        <Form.Item name="categoryId" label="Danh mục" rules={[{ required: true }]}>
-                          <Select options={categoryOptions} placeholder="Chọn danh mục" />
-                        </Form.Item>
-                        <Form.Item name="tagIds" label="Tag">
-                          <Select mode="multiple" options={tagOptions} placeholder="Chọn tag" />
-                        </Form.Item>
-                        <Form.Item name="imageUrl" label="Ảnh URL" rules={[{ required: true }]}>
-                          <Input placeholder="https://..." />
-                        </Form.Item>
-                        <Form.Item name="sku" label="SKU">
-                          <Input placeholder="MOONKID-001" />
-                        </Form.Item>
-                        <Form.Item name="price" label="Giá" rules={[{ required: true }]}>
-                          <InputNumber min={0} className="full-width" />
-                        </Form.Item>
-                        <Form.Item name="comparePrice" label="Giá gốc">
-                          <InputNumber min={0} className="full-width" />
-                        </Form.Item>
-                        <Form.Item name="stock" label="Tồn kho" rules={[{ required: true }]}>
-                          <InputNumber min={0} className="full-width" />
-                        </Form.Item>
-                        <Form.Item name="color" label="Màu">
-                          <Input />
-                        </Form.Item>
-                        <Form.Item name="size" label="Size">
-                          <Input />
-                        </Form.Item>
-                        <Form.Item name="material" label="Chất liệu">
-                          <Input placeholder="Cotton 100%" />
-                        </Form.Item>
-                        <Form.Item name="shortDescription" label="Mô tả ngắn">
-                          <Input.TextArea rows={2} />
-                        </Form.Item>
-                        <Form.Item name="isFeatured" label="Nổi bật" valuePropName="checked">
-                          <Switch />
-                        </Form.Item>
-                      </div>
-                      <Button type="primary" htmlType="submit" loading={productMutation.isPending}>
-                        Tạo sản phẩm
-                      </Button>
-                    </Form>
-                  </Card>
-                  <Card title="Sản phẩm hiện có">
-                    <Table
-                      rowKey="id"
-                      columns={productColumns}
-                      dataSource={productsQuery.data?.items ?? []}
-                      loading={productsQuery.isLoading}
-                      pagination={false}
-                    />
-                  </Card>
-                </Space>
-              ),
-            },
-            {
-              key: 'categories',
-              label: 'Danh mục',
-              children: (
-                <MasterDataPanel<AdminCategoryInput, CategoryNode>
-                  disabled={!canManageMasterData}
-                  title="Tạo danh mục"
-                  note="Chỉ ADMIN được quản lý danh mục."
-                  loading={categoryMutation.isPending}
-                  columns={categoryColumns}
-                  data={flattenCategories(categoriesQuery.data ?? [])}
-                  onFinish={(values) => categoryMutation.mutate(values)}
-                  fields={
-                    <>
-                      <Form.Item name="name" label="Tên danh mục" rules={[{ required: true }]}>
-                        <Input placeholder="Bé gái" />
-                      </Form.Item>
-                      <Form.Item name="slug" label="Slug" rules={[{ required: true }]}>
-                        <Input placeholder="be-gai" />
-                      </Form.Item>
-                      <Form.Item name="imageUrl" label="Ảnh URL">
-                        <Input placeholder="https://..." />
-                      </Form.Item>
-                      <Form.Item name="sortOrder" label="Thứ tự" initialValue={0}>
-                        <InputNumber className="full-width" />
-                      </Form.Item>
-                      <Form.Item name="isFeatured" label="Nổi bật ở home" valuePropName="checked">
-                        <Switch />
-                      </Form.Item>
-                    </>
-                  }
-                />
-              ),
-            },
-            {
-              key: 'tags',
-              label: 'Tag',
-              children: (
-                <MasterDataPanel<AdminTagInput, StorefrontTag>
-                  disabled={!canManageMasterData}
-                  title="Tạo tag"
-                  note="Tag dùng cho nhu cầu như đi học, sơ sinh, bé trai..."
-                  loading={tagMutation.isPending}
-                  columns={tagColumns}
-                  data={tagsQuery.data ?? []}
-                  onFinish={(values) => tagMutation.mutate(values)}
-                  fields={
-                    <>
-                      <Form.Item name="name" label="Tên tag" rules={[{ required: true }]}>
-                        <Input placeholder="Đi học" />
-                      </Form.Item>
-                      <Form.Item name="slug" label="Slug" rules={[{ required: true }]}>
-                        <Input placeholder="di-hoc" />
-                      </Form.Item>
-                      <Form.Item name="color" label="Màu hiển thị">
-                        <Input placeholder="#7b61ff" />
-                      </Form.Item>
-                    </>
-                  }
-                />
-              ),
-            },
-            {
-              key: 'banners',
-              label: 'Banner',
-              children: (
-                <MasterDataPanel<AdminBannerInput, BannerItem>
-                  disabled={!canManageMasterData}
-                  title="Tạo banner"
-                  note="Banner active sẽ hiển thị ở home."
-                  loading={bannerMutation.isPending}
-                  columns={bannerColumns}
-                  data={bannersQuery.data ?? []}
-                  onFinish={(values) => bannerMutation.mutate({ position: 'home_hero', isActive: true, ...values })}
-                  fields={
-                    <>
-                      <Form.Item name="title" label="Tiêu đề" rules={[{ required: true }]}>
-                        <Input placeholder="Bộ sưu tập hè cho bé" />
-                      </Form.Item>
-                      <Form.Item name="subtitle" label="Mô tả">
-                        <Input.TextArea rows={2} />
-                      </Form.Item>
-                      <Form.Item name="imageUrl" label="Ảnh URL" rules={[{ required: true }]}>
-                        <Input placeholder="https://..." />
-                      </Form.Item>
-                      <Form.Item name="linkUrl" label="Link">
-                        <Input placeholder="/shop" />
-                      </Form.Item>
-                      <Form.Item name="buttonText" label="Nút CTA">
-                        <Input placeholder="Mua sắm ngay" />
-                      </Form.Item>
-                    </>
-                  }
-                />
-              ),
-            },
-          ]}
-        />
-      </Content>
-    </Layout>
-  );
-}
-
-type ProductQuickForm = {
-  name: string;
-  slug: string;
-  categoryId: string;
-  tagIds?: string[];
-  imageUrl: string;
-  sku?: string;
-  price: number;
-  comparePrice?: number;
-  stock: number;
-  color?: string;
-  size?: string;
-  material?: string;
-  shortDescription?: string;
-  isFeatured?: boolean;
+const statusLabel: Record<string, string> = {
+  PENDING: 'Chờ xác nhận',
+  CONFIRMED: 'Đã xác nhận',
+  PROCESSING: 'Đang đóng gói',
+  SHIPPING: 'Đang giao',
+  DONE: 'Hoàn tất',
+  CANCELLED: 'Đã hủy',
 };
 
-function buildProductPayload(values: ProductQuickForm): AdminProductInput {
-  const color = values.color || 'Mặc định';
-  const size = values.size || 'Freesize';
+export default function AdminDashboardPage() {
+  const summaryQuery = useQuery({ queryKey: ['admin-dashboard-summary'], queryFn: adminOpsApi.summary });
+  const revenueQuery = useQuery({
+    queryKey: ['admin-dashboard-revenue', '7d'],
+    queryFn: () => adminOpsApi.revenue('7d'),
+  });
+  const statusQuery = useQuery({
+    queryKey: ['admin-dashboard-status'],
+    queryFn: adminOpsApi.ordersByStatus,
+  });
 
-  return {
-    name: values.name,
-    slug: values.slug,
-    shortDescription: values.shortDescription,
-    description: values.shortDescription,
-    material: values.material,
-    categoryId: values.categoryId,
-    tagIds: values.tagIds ?? [],
-    isActive: true,
-    isFeatured: values.isFeatured ?? false,
-    images: [{ url: values.imageUrl, alt: values.name, isPrimary: true, sortOrder: 0 }],
-    optionTypes: [
-      {
-        name: 'Màu sắc',
-        displayName: 'Màu sắc',
-        sortOrder: 0,
-        values: [{ value: color, displayValue: color, sortOrder: 0 }],
-      },
-      {
-        name: 'Kích cỡ',
-        displayName: 'Kích cỡ',
-        sortOrder: 1,
-        values: [{ value: size, displayValue: size, sortOrder: 0 }],
-      },
-    ],
-    variants: [
-      {
-        sku: values.sku || values.slug.toUpperCase().replaceAll('-', '_'),
-        price: values.price,
-        comparePrice: values.comparePrice,
-        stock: values.stock,
-        imageUrl: values.imageUrl,
-        isActive: true,
-        options: [
-          { optionTypeName: 'Màu sắc', value: color },
-          { optionTypeName: 'Kích cỡ', value: size },
-        ],
-      },
-    ],
-  };
+  const summary = summaryQuery.data;
+  const metrics = summary?.metrics;
+
+  return (
+    <div className="admin-dashboard">
+      <section className="admin-hero-panel">
+        <div>
+          <p className="admin-eyebrow">MoonKid Ops Ribbon</p>
+          <h2>Hôm nay cửa hàng cần chú ý gì?</h2>
+          <p>
+            Theo dõi đơn hàng, tồn kho, đánh giá và catalog trong một màn. Dữ liệu lấy trực tiếp từ
+            hệ thống để vận hành không bị “mù sương”.
+          </p>
+        </div>
+        <div className="admin-ribbon">
+          <span>{metrics?.pendingOrders ?? 0} đơn chờ</span>
+          <span>{metrics?.lowStockVariants ?? 0} tồn kho thấp</span>
+          <span>{metrics?.pendingReviews ?? 0} review chờ duyệt</span>
+        </div>
+      </section>
+
+      {summaryQuery.isLoading ? (
+        <Skeleton active paragraph={{ rows: 8 }} />
+      ) : (
+        <>
+          <div className="admin-kpi-grid">
+            <KpiCard icon={<DollarOutlined />} label="Doanh thu hôm nay" value={formatPrice(metrics?.revenueToday ?? 0)} />
+            <KpiCard icon={<ShoppingOutlined />} label="Đơn chờ xử lý" value={metrics?.pendingOrders ?? 0} href="/admin/orders?status=PENDING" />
+            <KpiCard icon={<InboxOutlined />} label="Sản phẩm active" value={metrics?.activeProducts ?? 0} href="/admin/products" />
+            <KpiCard icon={<TeamOutlined />} label="Khách hàng" value={metrics?.totalCustomers ?? 0} href="/admin/customers" />
+            <KpiCard icon={<AlertOutlined />} label="Tồn kho thấp" value={metrics?.lowStockVariants ?? 0} href="/admin/inventory?lowStock=true" />
+            <KpiCard icon={<StarOutlined />} label="Review chờ duyệt" value={metrics?.pendingReviews ?? 0} href="/admin/reviews?isApproved=false" />
+          </div>
+
+          <div className="admin-dashboard-grid">
+            <Card title="Doanh thu 7 ngày" className="admin-card">
+              <RevenueBars data={revenueQuery.data ?? []} />
+            </Card>
+            <Card title="Đơn hàng theo trạng thái" className="admin-card">
+              <StatusBars data={statusQuery.data ?? []} />
+            </Card>
+          </div>
+
+          <div className="admin-dashboard-grid admin-dashboard-grid-wide">
+            <Card title="Việc cần xử lý" className="admin-card">
+              <Space direction="vertical" className="admin-full-width" size="middle">
+                <TodoLine label="Đơn chờ xác nhận" count={summary?.todo.pendingOrders.length ?? 0} href="/admin/orders?status=PENDING" />
+                <TodoLine label="Biến thể tồn kho thấp" count={summary?.todo.lowStockVariants.length ?? 0} href="/admin/inventory?lowStock=true" />
+                <TodoLine label="Đánh giá chờ duyệt" count={summary?.todo.pendingReviews.length ?? 0} href="/admin/reviews?isApproved=false" />
+                <TodoLine label="Banner đang tắt" count={summary?.todo.inactiveBanners.length ?? 0} href="/admin/banners" />
+              </Space>
+            </Card>
+            <Card title="Sức khỏe catalog" className="admin-card">
+              <div className="admin-catalog-health">
+                <Progress percent={percent(summary?.catalog.activeProducts ?? 0, summary?.catalog.products ?? 0)} strokeColor="#7b61ff" />
+                <div className="admin-health-grid">
+                  <span>{summary?.catalog.products ?? 0}<small>Sản phẩm</small></span>
+                  <span>{summary?.catalog.categories ?? 0}<small>Danh mục</small></span>
+                  <span>{summary?.catalog.tags ?? 0}<small>Tag</small></span>
+                  <span>{summary?.catalog.banners ?? 0}<small>Banner</small></span>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          <Card title="Hoạt động gần đây" className="admin-card">
+            {summary?.recentActivity.length ? (
+              <List
+                dataSource={summary.recentActivity}
+                renderItem={(item) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      title={`${item.user.name} ${item.action} ${item.entity}`}
+                      description={`${item.entityId} • ${new Date(item.createdAt).toLocaleString('vi-VN')}`}
+                    />
+                    <Tag>{item.user.role}</Tag>
+                  </List.Item>
+                )}
+              />
+            ) : (
+              <Empty description="Chưa có nhật ký thao tác. Các thay đổi admin sẽ xuất hiện tại đây." />
+            )}
+          </Card>
+        </>
+      )}
+    </div>
+  );
 }
 
-function MasterDataPanel<TPayload extends object, TRow extends { id: string }>({
-  disabled,
-  title,
-  note,
-  loading,
-  fields,
-  data,
-  columns,
-  onFinish,
-}: {
-  disabled: boolean;
-  title: string;
-  note: string;
-  loading: boolean;
-  fields: ReactNode;
-  data: TRow[];
-  columns: ColumnsType<TRow>;
-  onFinish: (values: TPayload) => void;
-}) {
+function KpiCard({ icon, label, value, href }: { icon: React.ReactNode; label: string; value: string | number; href?: string }) {
+  const content = (
+    <Card className="admin-kpi-card">
+      <div className="admin-kpi-icon">{icon}</div>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </Card>
+  );
+  return href ? <Link href={href}>{content}</Link> : content;
+}
+
+function RevenueBars({ data }: { data: RevenuePoint[] }) {
+  if (!data.length) return <Empty description="Chưa có doanh thu." />;
+  const max = Math.max(...data.map((item) => item.revenue), 1);
   return (
-    <Space direction="vertical" size="large" className="admin-tab">
-      <Card title={title}>
-        <Typography.Paragraph type={disabled ? 'danger' : 'secondary'}>{note}</Typography.Paragraph>
-        <Form<TPayload> layout="vertical" disabled={disabled} onFinish={onFinish}>
-          <div className="admin-form-grid">{fields}</div>
-          <Button type="primary" htmlType="submit" loading={loading} disabled={disabled}>
-            Lưu
-          </Button>
-        </Form>
-      </Card>
-      <Card title="Dữ liệu hiện có">
-        <Table rowKey="id" columns={columns} dataSource={data} pagination={{ pageSize: 8 }} />
-      </Card>
+    <div className="admin-bar-chart">
+      {data.map((item) => (
+        <div className="admin-bar-column" key={item.date}>
+          <div className="admin-bar" style={{ height: `${Math.max(8, (item.revenue / max) * 150)}px` }} />
+          <small>{new Date(item.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}</small>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StatusBars({ data }: { data: StatusPoint[] }) {
+  if (!data.length) return <Empty description="Chưa có đơn hàng." />;
+  const total = data.reduce((sum, item) => sum + item.count, 0);
+  return (
+    <Space direction="vertical" className="admin-full-width">
+      {data.map((item) => (
+        <div className="admin-status-row" key={item.status}>
+          <span>{statusLabel[item.status]}</span>
+          <Progress percent={percent(item.count, total)} showInfo={false} strokeColor="#ffb84d" />
+          <strong>{item.count}</strong>
+        </div>
+      ))}
+      {total === 0 && <Alert type="info" showIcon message="Chưa có đơn hàng, dashboard sẽ tự cập nhật khi có dữ liệu." />}
     </Space>
   );
 }
 
-function flattenCategories(categories: CategoryNode[]): CategoryNode[] {
-  return categories.flatMap((category) => [
-    category,
-    ...flattenCategories(category.children ?? []),
-  ]);
+function TodoLine({ label, count, href }: { label: string; count: number; href: string }) {
+  return (
+    <Link href={href} className="admin-todo-line">
+      <span>{label}</span>
+      <Tag color={count > 0 ? 'orange' : 'green'}>{count}</Tag>
+    </Link>
+  );
+}
+
+function percent(value: number, total: number) {
+  if (!total) return 0;
+  return Math.round((value / total) * 100);
 }

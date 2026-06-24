@@ -5,6 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { AdminCatalogModule } from './admin-catalog/admin-catalog.module';
+import { AdminOpsModule } from './admin-ops/admin-ops.module';
 import { API_LIMITS } from './common/constants/app.constants';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { AppLoggerService } from './common/services/logger.service';
@@ -35,6 +36,7 @@ import { StorefrontModule } from './storefront/storefront.module';
     AuthModule,
     StorefrontModule,
     AdminCatalogModule,
+    AdminOpsModule,
     SettingsModule,
   ],
   providers: [

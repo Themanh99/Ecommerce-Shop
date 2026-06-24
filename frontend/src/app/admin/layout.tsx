@@ -3,38 +3,19 @@
 import { useEffect, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Spin } from 'antd';
-import { useAuthStore, type UserRole } from '@/stores/authStore';
+import { AdminShell } from '@/components/admin/AdminShell';
+import { useAuthStore } from '@/stores/authStore';
 
-interface Props {
-  children: ReactNode;
-  allowedRoles?: UserRole[];
-  redirectTo?: string;
-}
-
-/** Protect admin routes — redirect to home if not authenticated or wrong role */
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  return (
-    <ProtectedRoute allowedRoles={['ADMIN', 'SALE']}>
-      {children}
-    </ProtectedRoute>
-  );
-}
-
-function ProtectedRoute({ children, allowedRoles, redirectTo = '/' }: Props) {
   const { isAuthenticated, isInitialized, user } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
     if (!isInitialized) return;
-
-    if (!isAuthenticated) {
-      router.replace(redirectTo);
-      return;
+    if (!isAuthenticated || !user || user.role === 'USER') {
+      router.replace('/');
     }
-    if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-      router.replace(redirectTo);
-    }
-  }, [isAuthenticated, isInitialized, user, allowedRoles, redirectTo, router]);
+  }, [isAuthenticated, isInitialized, router, user]);
 
   if (!isInitialized) {
     return (
@@ -44,8 +25,7 @@ function ProtectedRoute({ children, allowedRoles, redirectTo = '/' }: Props) {
     );
   }
 
-  if (!isAuthenticated) return null;
-  if (allowedRoles && user && !allowedRoles.includes(user.role)) return null;
+  if (!isAuthenticated || !user || user.role === 'USER') return null;
 
-  return <>{children}</>;
+  return <AdminShell>{children}</AdminShell>;
 }
