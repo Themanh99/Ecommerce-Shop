@@ -223,6 +223,7 @@ export class AuthService {
         password: hashedPassword,
         isEmailVerified: isEmail,
         isPhoneVerified: !isEmail,
+        cart: { create: {} },
       },
     });
 
@@ -357,6 +358,7 @@ export class AuthService {
             name: googleUser.name,
             avatar: googleUser.avatar,
             isEmailVerified: true,
+            cart: { create: {} },
           },
         });
       }

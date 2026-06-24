@@ -29,7 +29,7 @@ export const COOKIE_KEYS = {
 } as const;
 
 export const COOKIE_PATHS = {
-  REFRESH: '/api/auth/refresh',
+  REFRESH: '/api/auth',
 } as const;
 
 export const ERROR_MESSAGES = {

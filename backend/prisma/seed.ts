@@ -36,6 +36,35 @@ async function main() {
     },
   });
 
+  const customerEmail = process.env.SEED_CUSTOMER_EMAIL ?? 'customer@moonkid.local';
+  const customerPassword = process.env.SEED_CUSTOMER_PASSWORD ?? 'MoonKid@123';
+  const hashedCustomerPassword = await bcrypt.hash(customerPassword, 12);
+
+  await prisma.user.upsert({
+    where: { email: customerEmail },
+    update: {
+      name: 'Khách hàng MoonKid',
+      password: hashedCustomerPassword,
+      role: Role.USER,
+      isActive: true,
+      isEmailVerified: true,
+      cart: {
+        upsert: {
+          create: {},
+          update: {},
+        },
+      },
+    },
+    create: {
+      name: 'Khách hàng MoonKid',
+      email: customerEmail,
+      password: hashedCustomerPassword,
+      role: Role.USER,
+      isEmailVerified: true,
+      cart: { create: {} },
+    },
+  });
+
   const settings = await prisma.systemSetting.findFirst();
   const settingsData = {
     shopName: 'MoonKid',

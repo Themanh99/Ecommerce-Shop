@@ -162,6 +162,8 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-moonkid}:${POSTGRES_PASSWORD:-moonkid_dev_password}@postgres:5432/${POSTGRES_DB:-moonkid}?schema=public
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@moonkid.local}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-MoonKid@123}
+      SEED_CUSTOMER_EMAIL: ${SEED_CUSTOMER_EMAIL:-customer@moonkid.local}
+      SEED_CUSTOMER_PASSWORD: ${SEED_CUSTOMER_PASSWORD:-MoonKid@123}
     command: ["npx", "prisma", "db", "seed"]
     networks: [data]
 
